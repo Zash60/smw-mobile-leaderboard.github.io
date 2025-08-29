@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SMW Mobile Speedrun Leaderboard</title>
+    <style>
+        :root {
+            --bg-color: #1a1a1a;
+            --text-color: #f0f0f0;
+            --primary-color: #4CAF50; /* Green */
+            --secondary-color: #FFEB3B; /* Yellow */
+            --border-color: #444;
+            --accent-color: #2196F3; /* Blue */
+            --pending-color: #FF9800; /* Orange */
+            --rejected-color: #f44336; /* Red */
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            margin: 0;
+            padding: 1rem;
+        }
+        header { text-align: center; border-bottom: 2px solid var(--primary-color); padding-bottom: 1rem; margin-bottom: 1.5rem; }
+        h1, h2, h3 { color: var(--secondary-color); text-shadow: 1px 1px 2px #000; }
+        nav { margin-top: 1rem; display: flex; justify-content: center; gap: 1.5rem; flex-wrap: wrap; }
+        nav a, .action-button { color: var(--text-color); text-decoration: none; font-weight: bold; cursor: pointer; padding: 8px 12px; border-radius: 4px; transition: background-color 0.2s; }
+        nav a:hover, .action-button:hover { background-color: var(--primary-color); color: var(--bg-color); }
+        main { max-width: 900px; margin: 0 auto; }
+        .grid-container { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1rem; }
+        .card { background-color: #2a2a2a; border: 1px solid var(--border-color); border-radius: 8px; padding: 1.5rem; text-align: center; cursor: pointer; transition: transform 0.2s, box-shadow 0.2s; }
+        .card:hover { transform: translateY(-5px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+        .table-container { overflow-x: auto; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--border-color); }
+        .mod-actions { display: flex; gap: 5px; align-items: center; white-space: nowrap; }
+        .mod-actions button { background: none; border: 1px solid var(--border-color); color: var(--text-color); cursor: pointer; padding: 4px 8px; border-radius: 4px; font-size: 1rem; line-height: 1; }
+        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.7); justify-content: center; align-items: center; }
+        .modal-content { background-color: #333; padding: 2rem; border-radius: 8px; width: 90%; max-width: 500px; position: relative; max-height: 90vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 1.5rem; cursor: pointer; }
+        form label { display: block; margin-top: 1rem; }
+        form input, form select, form button { width: 100%; padding: 0.75rem; margin-top: 0.5rem; border-radius: 4px; border: 1px solid var(--border-color); background-color: #444; color: var(--text-color); box-sizing: border-box; }
+        form button { background-color: var(--accent-color); font-weight: bold; cursor: pointer; }
+        form button:disabled { background-color: #555; cursor: not-allowed; }
+        .loader { text-align: center; font-size: 1.2em; padding: 2rem; color: var(--secondary-color); }
+        .breadcrumb { margin-bottom: 1rem; font-size: 1.1em; }
+        .breadcrumb a { color: var(--primary-color); }
+        .breadcrumb span { color: var(--text-color); }
+        .error-message { color: var(--rejected-color); margin-top: 1rem; display: none; }
+
+        @media (max-width: 600px) {
+            body { padding: 0.5rem; }
+            h1 { font-size: 1.5rem; }
+            .card h3 { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>SMW Mobile Speedrun Leaderboard</h1>
+        <nav>
+            <a href="#home">Categories</a>
+            <a href="#worldrecords">World Records</a>
+            <span id="mod-queue-link-container"></span>
+        </nav>
+        <div id="user-actions" style="margin-top: 1rem;">
+            <a class="action-button" onclick="openSubmissionModal()">Submit Run</a>
+            <span style="color: #555; margin: 0 10px;">|</span>
+            <span id="moderator-auth-section"></span>
+        </div>
+    </header>
+    <main id="app-container"></main>
+
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+
+    <script>
+        // ==============================================================================
+        // --- 1. CONFIG & APP STATE ---
+        // ==============================================================================
+        const firebaseConfig = {
+    apiKey: "AIzaSyDepZjZreEE-J_BbKPZzIU9bNmc1-Z1EpU",
+    authDomain: "smw-mobile-leaderboard.firebaseapp.com",
+    projectId: "smw-mobile-leaderboard",
+    storageBucket: "smw-mobile-leaderboard.firebasestorage.app",
+    messagingSenderId: "630687938724",
+    appId: "1:630687938724:web:90bd99d54d951625264e31"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+        };
+        
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        const appContainer = document.getElementById('app-container');
+        const appState = {
+            isModerator: false,
+            categoriesCache: [],
+            currentListener: null,
+        };
+
+        // ==============================================================================
+        // --- 2. ROUTER & NAVIGATION ---
+        // ==============================================================================
+        function router() {
+            if (appState.currentListener) {
+                appState.currentListener();
+                appState.currentListener = null;
+            }
+
+            const hash = window.location.hash || '#home';
+            if (hash === '#home') {
+                showCategoriesPage();
+            } else if (hash.startsWith('#category/')) {
+                const categoryId = hash.substring('#category/'.length);
+                showLeaderboard(categoryId);
+            } else if (hash === '#modqueue') {
+                showModQueuePage();
+            } else if (hash === '#worldrecords') {
+                showWorldRecordsPage();
+            } else {
+                window.location.hash = '#home';
+            }
+        }
+        
+        // ==============================================================================
+        // --- 3. RENDER FUNCTIONS ---
+        // ==============================================================================
+        function renderLoader(message) { appContainer.innerHTML = `<div class="loader">${message}</div>`; }
+        function renderError(message) { appContainer.innerHTML = `<h2>${message}</h2>`; }
+
+        async function loadCategories() {
+            if (appState.categoriesCache.length > 0) return appState.categoriesCache;
+            try {
+                const snapshot = await db.collection('categories').orderBy('order').get();
+                appState.categoriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                return appState.categoriesCache;
+            } catch (error) { console.error(error); renderError("Error connecting to the database."); return []; }
+        }
+        
+        async function showCategoriesPage() {
+            renderLoader("Loading Categories...");
+            const categories = await loadCategories();
+            if (categories.length === 0) {
+                renderError('No categories found. Please MANUALLY DELETE the `categories` collection in Firebase and run `seedDatabase()` in the console (F12).');
+                return;
+            }
+            appContainer.innerHTML = `
+                <h2>Select a Category</h2>
+                <div class="grid-container">
+                    ${categories.map(cat => `
+                        <div class="card" onclick="window.location.hash='#category/${cat.id}'">
+                            <h3>${cat.name}</h3>
+                        </div>
+                    `).join('')}
+                </div>`;
+        }
+        
+        async function showLeaderboard(categoryId) {
+            renderLoader("Loading Leaderboard...");
+            await loadCategories();
+            const category = appState.categoriesCache.find(c => c.id === categoryId);
+
+            if (!category) { window.location.hash = '#home'; return; }
+
+            const runsCollection = db.collection('categories').doc(categoryId).collection('runs')
+                .where('status', '==', 'verified').orderBy('time_numeric');
+
+            appState.currentListener = runsCollection.onSnapshot(snapshot => {
+                const runs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                appContainer.innerHTML = `
+                    <div class="breadcrumb">
+                        <a href="#home">Categories</a> / <span>${category.name}</span>
+                    </div>
+                    <h2>${category.name} Leaderboard</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>#</th><th>Runner</th><th>Time</th><th>Date</th><th>Video</th>${appState.isModerator ? '<th>Actions</th>' : ''}</tr></thead>
+                            <tbody>
+                            ${runs.map((run, index) => {
+                                const runDate = run.date ? new Date(run.date.replace(/-/g, '\/')).toLocaleDateString() : 'N/A';
+                                return `<tr>
+                                    <td>${index + 1}</td>
+                                    <td>${run.runner}</td>
+                                    <td>${run.time_str}</td>
+                                    <td>${runDate}</td>
+                                    <td><a href="${run.videoLink}" target="_blank" rel="noopener noreferrer">Link</a></td>
+                                    ${appState.isModerator ? `
+                                        <td><div class="mod-actions">
+                                            <button onclick="openEditModal('${categoryId}', '${run.id}')" title="Edit">✏️</button>
+                                            <button onclick="deleteRun('${categoryId}', '${run.id}')" title="Delete">🗑️</button>
+                                        </div></td>` : ''}
+                                </tr>`;
+                            }).join('') || '<tr><td colspan="6">No verified runs submitted yet.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>`;
+            }, error => {
+                console.error("Error fetching leaderboard:", error);
+                renderError("Failed to load leaderboard.");
+            });
+        }
+        
+        async function showModQueuePage() {
+            if (!appState.isModerator) { window.location.hash = '#home'; return; }
+            renderLoader("Loading Moderation Queue...");
+            await loadCategories();
+
+            try {
+                const pendingRunsSnapshot = await db.collectionGroup('runs').where('status', '==', 'pending').get();
+                const pendingRuns = pendingRunsSnapshot.docs.map(doc => {
+                    const path = doc.ref.path.split('/');
+                    return { id: doc.id, categoryId: path[1], ...doc.data() };
+                });
+
+                appContainer.innerHTML = `
+                    <h2>Moderation Queue</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>Runner</th><th>Category</th><th>Time</th><th>Date</th><th>Video</th><th>Actions</th></tr></thead>
+                            <tbody>
+                                ${pendingRuns.map(run => {
+                                    const category = appState.categoriesCache.find(c => c.id === run.categoryId);
+                                    const runDate = run.date ? new Date(run.date.replace(/-/g, '\/')).toLocaleDateString() : 'N/A';
+                                    return `
+                                        <tr>
+                                            <td>${run.runner}</td>
+                                            <td>${category?.name || run.categoryId}</td>
+                                            <td>${run.time_str}</td>
+                                            <td>${runDate}</td>
+                                            <td><a href="${run.videoLink}" target="_blank">Link</a></td>
+                                            <td><div class="mod-actions">
+                                                <button onclick="updateRunStatus('${run.categoryId}', '${run.id}', 'verified')" title="Verify">✅</button>
+                                                <button onclick="updateRunStatus('${run.categoryId}', '${run.id}', 'rejected')" title="Reject">❌</button>
+                                                <button onclick="openEditModal('${run.categoryId}', '${run.id}')" title="Edit">✏️</button>
+                                                <button onclick="deleteRun('${run.categoryId}', '${run.id}')" title="Delete">🗑️</button>
+                                            </div></td>
+                                        </tr>`;
+                                }).join('') || '<tr><td colspan="6">The moderation queue is empty.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>`;
+            } catch (error) {
+                console.error("Error loading mod queue:", error);
+                renderError("Failed to load moderation queue. You may need to create a Firestore index. Check the console (F12) for an error message with a link to create it.");
+            }
+        }
+        
+        async function showWorldRecordsPage() {
+            renderLoader("Calculating World Records...");
+            try {
+                await loadCategories();
+                const allRunsSnapshot = await db.collectionGroup('runs').where('status', '==', 'verified').get();
+                
+                const categories = {};
+                allRunsSnapshot.forEach(doc => {
+                    const run = doc.data();
+                    const categoryId = doc.ref.parent.parent.id;
+                    if (!categories[categoryId]) categories[categoryId] = { runs: [], categoryId: categoryId };
+                    categories[categoryId].runs.push(run);
+                });
+
+                const wrData = {};
+                for (const key in categories) {
+                    const catInfo = categories[key];
+                    if (catInfo.runs.length > 0) {
+                        catInfo.runs.sort((a, b) => a.time_numeric - b.time_numeric);
+                        const originalRunnerName = catInfo.runs[0].runner;
+                        const normalizedKey = originalRunnerName.toLowerCase().trim();
+                        const categoryName = appState.categoriesCache.find(c => c.id === catInfo.categoryId)?.name || catInfo.categoryId;
+
+                        if (!wrData[normalizedKey]) {
+                            wrData[normalizedKey] = { displayName: originalRunnerName, count: 0, categories: [] };
+                        }
+                        wrData[normalizedKey].count++;
+                        wrData[normalizedKey].categories.push(categoryName);
+                    }
+                }
+
+                const sortedWRs = Object.values(wrData).sort((a, b) => b.count - a.count);
+
+                appContainer.innerHTML = `
+                    <h2>World Records Tally</h2>
+                    <div class="table-container">
+                        <table>
+                            <thead><tr><th>#</th><th>Runner</th><th>WRs</th><th>Categories</th></tr></thead>
+                            <tbody>
+                                ${sortedWRs.map((data, index) => `
+                                    <tr>
+                                        <td>${index + 1}</td>
+                                        <td>${data.displayName}</td>
+                                        <td>${data.count}</td>
+                                        <td><ul class="wr-list">${data.categories.sort().map(s => `<li>${s}</li>`).join('')}</ul></td>
+                                    </tr>
+                                `).join('') || '<tr><td colspan="4">No world records found.</td></tr>'}
+                            </tbody>
+                        </table>
+                    </div>`;
+            } catch (error) {
+                console.error("Error calculating world records:", error);
+                renderError("Failed to calculate world records. You may need to create an index. Check the console (F12) for a link.");
+            }
+        }
+        
+        // ==============================================================================
+        // --- 4. ACTIONS & MODERATION ---
+        // ==============================================================================
+        function updateModeratorUI(user) {
+            appState.isModerator = !!user;
+            const modSection = document.getElementById('moderator-auth-section');
+            const modQueueLink = document.getElementById('mod-queue-link-container');
+
+            if (user) {
+                modSection.innerHTML = `<a class="action-button" onclick="logoutModerator()">Logout (${user.email})</a>`;
+                modQueueLink.innerHTML = `<a href="#modqueue">Moderation Queue</a>`;
+            } else {
+                modSection.innerHTML = `<a class="action-button" onclick="openLoginModal()">Moderator Login</a>`;
+                modQueueLink.innerHTML = '';
+            }
+            router();
+        }
+
+        auth.onAuthStateChanged(user => {
+            updateModeratorUI(user);
+        });
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            const form = event.target;
+            const errorElement = document.getElementById('login-error');
+            errorElement.style.display = 'none';
+            try {
+                await auth.signInWithEmailAndPassword(form.email.value, form.password.value);
+                closeModal('login-modal');
+            } catch (error) {
+                console.error("Login failed:", error.message);
+                errorElement.textContent = "Login failed. Please check your email and password.";
+                errorElement.style.display = 'block';
+            }
+        }
+        
+        async function logoutModerator() { await auth.signOut(); }
+
+        function openModal(modalId) { document.getElementById(modalId).style.display = 'flex'; }
+        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+        function openLoginModal() { openModal('login-modal'); }
+        
+        async function openSubmissionModal() {
+            const categories = await loadCategories();
+            const categorySelect = document.getElementById('category-select');
+            categorySelect.innerHTML = '<option value="">-- Select a Category --</option>' + categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+            openModal('submission-modal');
+        }
+
+        async function openEditModal(categoryId, runId) {
+            if (!appState.isModerator) return;
+            try {
+                const runDoc = await db.collection('categories').doc(categoryId).collection('runs').doc(runId).get();
+                if (!runDoc.exists) { alert("Run not found!"); return; }
+                const runData = runDoc.data();
+                
+                document.getElementById('edit-run-id').value = runId;
+                document.getElementById('edit-category-id').value = categoryId;
+                document.getElementById('edit-runner').value = runData.runner;
+                document.getElementById('edit-time').value = runData.time_str;
+                document.getElementById('edit-date').value = runData.date;
+                document.getElementById('edit-videoLink').value = runData.videoLink;
+                
+                openModal('edit-run-modal');
+            } catch(error) {
+                console.error("Error opening edit modal:", error);
+                alert("Could not load run data for editing.");
+            }
+        }
+
+        function parseTimeToNumeric(timeStr) {
+            if (String(timeStr).includes(':')) {
+                const parts = String(timeStr).split(':').map(Number);
+                let seconds = 0;
+                if (parts.length === 3) { // HH:MM:SS
+                    seconds += parts[0] * 3600;
+                    seconds += parts[1] * 60;
+                    seconds += parts[2];
+                } else if (parts.length === 2) { // MM:SS
+                    seconds += parts[0] * 60;
+                    seconds += parts[1];
+                }
+                return seconds;
+            }
+            return parseFloat(timeStr) || Infinity;
+        }
+
+        async function handleRunSubmission(event) {
+            event.preventDefault();
+            const form = document.getElementById('submission-form');
+            const submitButton = document.getElementById('submit-run-button');
+            submitButton.disabled = true;
+            submitButton.textContent = 'Submitting...';
+
+            const categoryId = form['category-select'].value;
+            const runnerName = form.runner.value.trim();
+            const timeStr = form.time.value;
+            
+            const runData = {
+                runner: runnerName,
+                runner_normalized: runnerName.toLowerCase().trim(),
+                time_str: timeStr,
+                time_numeric: parseTimeToNumeric(timeStr),
+                date: form.date.value,
+                videoLink: form.videoLink.value,
+                status: 'pending'
+            };
+
+            const runsRef = db.collection('categories').doc(categoryId).collection('runs');
+            
+            try {
+                const existingRunSnapshot = await runsRef.where('runner_normalized', '==', runData.runner_normalized).where('status', '==', 'verified').limit(1).get();
+
+                if (!existingRunSnapshot.empty) {
+                    const existingTime = existingRunSnapshot.docs[0].data().time_numeric;
+                    if (runData.time_numeric >= existingTime) {
+                        alert("Submission failed: Your new time must be faster than your currently verified record.");
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Submit Run';
+                        return;
+                    }
+                }
+                
+                await runsRef.add(runData);
+                alert("Run submitted for moderation!");
+                closeModal('submission-modal');
+                form.reset();
+            } catch (error) {
+                alert("An error occurred during submission.");
+                console.error("Run submission error:", error);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'Submit Run';
+            }
+        }
+
+        async function handleRunUpdate(event) {
+            event.preventDefault();
+            if (!appState.isModerator) return;
+            const form = event.target;
+            const button = form.querySelector('button');
+            button.disabled = true;
+            button.textContent = 'Updating...';
+
+            const runId = form['edit-run-id'].value;
+            const categoryId = form['edit-category-id'].value;
+            const runnerName = form['edit-runner'].value;
+            const timeStr = form['edit-time'].value;
+            
+            const updatedData = {
+                runner: runnerName,
+                runner_normalized: runnerName.toLowerCase().trim(),
+                time_str: timeStr,
+                time_numeric: parseTimeToNumeric(timeStr),
+                date: form['edit-date'].value,
+                videoLink: form['edit-videoLink'].value
+            };
+
+            try {
+                await db.collection('categories').doc(categoryId).collection('runs').doc(runId).update(updatedData);
+                alert("Run updated successfully!");
+                closeModal('edit-run-modal');
+                router();
+            } catch(error) {
+                console.error("Run update error:", error);
+                alert("Failed to update run.");
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Update Run';
+            }
+        }
+
+        async function updateRunStatus(categoryId, runId, newStatus) {
+            if (!appState.isModerator) return;
+            if (!confirm(`Are you sure you want to ${newStatus} this run?`)) return;
+
+            const runRef = db.collection('categories').doc(categoryId).collection('runs').doc(runId);
+
+            try {
+                if (newStatus === 'verified') {
+                    const runDoc = await runRef.get();
+                    if (!runDoc.exists) throw new Error("Run not found");
+                    const runData = runDoc.data();
+
+                    const query = db.collection('categories').doc(categoryId).collection('runs')
+                        .where('runner_normalized', '==', runData.runner_normalized)
+                        .where('status', '==', 'verified');
+                    
+                    const oldRunsSnapshot = await query.get();
+                    
+                    const batch = db.batch();
+                    oldRunsSnapshot.forEach(doc => {
+                        console.log(`Deleting old verified run ${doc.id} for runner ${runData.runner}`);
+                        batch.delete(doc.ref);
+                    });
+                    
+                    batch.update(runRef, { status: 'verified' });
+                    await batch.commit();
+                } else {
+                    await runRef.update({ status: newStatus });
+                }
+                alert(`Run has been ${newStatus}.`);
+                router();
+            } catch (error) {
+                console.error(`Failed to ${newStatus} run:`, error);
+                alert(`An error occurred.`);
+            }
+        }
+
+        async function deleteRun(categoryId, runId) {
+            if (!appState.isModerator) return;
+            if (!confirm("Are you sure you want to permanently delete this run? This cannot be undone.")) return;
+
+            try {
+                await db.collection('categories').doc(categoryId).collection('runs').doc(runId).delete();
+                alert("Run deleted successfully.");
+                router();
+            } catch (error) {
+                console.error("Failed to delete run:", error);
+                alert("An error occurred while deleting the run.");
+            }
+        }
+        
+        // ==============================================================================
+        // --- 5. SEED FUNCTION (FOR DEV CONSOLE USE) ---
+        // ==============================================================================
+        async function seedDatabase() {
+            console.log("This will POPULATE the 'categories' collection. It is critical that you MANUALLY delete the collection in the Firebase Console first for a clean seed.");
+            if (!confirm("This will overwrite existing data. Are you sure you want to continue?")) return;
+
+            const seedData = {
+                categories: [
+                    { id: "96_exit", name: "96 Exit", order: 1 },
+                    { id: "all_castles", name: "All Castles", order: 2 },
+                    { id: "no_starworld", name: "No Starworld", order: 3 },
+                    { id: "11_exit_cloud", name: "11 Exit, Cloud", order: 4 },
+                    { id: "11_exit_orb", name: "11 Exit, Orb", order: 5 },
+                    { id: "11_exit_glitchless", name: "11 Exit, Glitchless", order: 6 },
+                    { id: "0_exit", name: "0 Exit", order: 7 },
+                    { id: "95_exit_no_cape", name: "95 Exit, No Cape", order: 8 },
+                    { id: "all_castles_no_cape", name: "All Castles, No Cape", order: 9 },
+                    { id: "no_cape_no_starworld", name: "No Cape, No Starworld", order: 10 },
+                    { id: "11_exit_no_cape_cloud", name: "11 Exit, No Cape, Cloud", order: 11 },
+                    { id: "11_exit_no_cape_orb", name: "11 Exit, No Cape, Orb", order: 12 },
+                    { id: "11_exit_no_cape_glitchless", name: "11 Exit, No Cape, Glitchless", order: 13 },
+                    { id: "all_castles_small_only", name: "All Castles, Small Only", order: 14 },
+                    { id: "no_starworld_small_only", name: "No Starworld, Small Only", order: 15 },
+                    { id: "small_only", name: "Small Only", order: 16 },
+                    { id: "lunar_dragon_glitchless", name: "Lunar Dragon, Glitchless", order: 17 },
+                    { id: "lunar_dragon_glitches", name: "Lunar Dragon, Glitches", order: 18 }
+                ]
+            };
+            
+            try {
+                console.log("Starting database seed...");
+                const addBatch = db.batch();
+                for (const category of seedData.categories) {
+                    const categoryRef = db.collection('categories').doc(category.id);
+                    addBatch.set(categoryRef, { name: category.name, order: category.order });
+                }
+                await addBatch.commit();
+                console.log("DATABASE SEEDING COMPLETE!");
+                window.location.reload();
+            } catch (error) {
+                console.error("SEEDING FAILED:", error);
+                alert("Seeding failed. Check the console for details. Make sure the 'categories' collection was manually deleted from Firebase first.");
+            }
+        }
+        
+        // ==============================================================================
+        // --- 6. INITIALIZATION ---
+        // ==============================================================================
+        window.addEventListener('hashchange', router);
+        document.addEventListener('DOMContentLoaded', () => {
+            document.body.insertAdjacentHTML('beforeend', `
+                <div id="submission-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn" onclick="closeModal('submission-modal')">&times;</span>
+                        <h2>Submit New Run</h2>
+                        <form id="submission-form" onsubmit="handleRunSubmission(event)">
+                            <label for="category-select">Category:</label><select id="category-select" required></select>
+                            <label for="runner">Runner:</label><input type="text" id="runner" required>
+                            <label for="time">Time (e.g., 47:15 or 1:23:45):</label><input type="text" id="time" required>
+                            <label for="date">Date:</label><input type="date" id="date" required>
+                            <label for="videoLink">Video Link:</label><input type="url" id="videoLink" required>
+                            <button type="submit" id="submit-run-button">Submit Run</button>
+                        </form>
+                    </div>
+                </div>
+                <div id="edit-run-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn" onclick="closeModal('edit-run-modal')">&times;</span>
+                        <h2>Edit Run</h2>
+                        <form id="edit-run-form" onsubmit="handleRunUpdate(event)">
+                            <input type="hidden" id="edit-run-id"><input type="hidden" id="edit-category-id">
+                            <label for="edit-runner">Runner:</label><input type="text" id="edit-runner" required>
+                            <label for="edit-time">Time:</label><input type="text" id="edit-time" required>
+                            <label for="edit-date">Date:</label><input type="date" id="edit-date" required>
+                            <label for="edit-videoLink">Video Link:</label><input type="url" id="edit-videoLink" required>
+                            <button type="submit" id="update-run-button">Update Run</button>
+                        </form>
+                    </div>
+                </div>
+                 <div id="login-modal" class="modal">
+                    <div class="modal-content">
+                        <span class="close-btn" onclick="closeModal('login-modal')">&times;</span>
+                        <h2>Moderator Login</h2>
+                        <form id="login-form" onsubmit="handleLogin(event)">
+                            <label for="email">Email:</label>
+                            <input type="email" id="email" required>
+                            <label for="password">Password:</label>
+                            <input type="password" id="password" required>
+                            <button type="submit">Log In</button>
+                            <p id="login-error" class="error-message"></p>
+                        </form>
+                    </div>
+                </div>
+            `);
+            auth.onAuthStateChanged(user => { updateModeratorUI(user); });
+            router();
+        });
+    </script>
+</body>
+</html>
