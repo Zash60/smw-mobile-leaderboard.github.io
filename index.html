@@ -91,9 +91,6 @@
 
   // Initialize Firebase
   const app = initializeApp(firebaseConfig);
-        };
-        
-        firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const auth = firebase.auth();
 
@@ -300,7 +297,8 @@
                                 `).join('') || '<tr><td colspan="4">No world records found.</td></tr>'}
                             </tbody>
                         </table>
-                    </div>`;
+                    </div>
+                `;
             } catch (error) {
                 console.error("Error calculating world records:", error);
                 renderError("Failed to calculate world records. You may need to create an index. Check the console (F12) for a link.");
@@ -382,11 +380,11 @@
             if (String(timeStr).includes(':')) {
                 const parts = String(timeStr).split(':').map(Number);
                 let seconds = 0;
-                if (parts.length === 3) { // HH:MM:SS
+                if (parts.length === 3) {
                     seconds += parts[0] * 3600;
                     seconds += parts[1] * 60;
                     seconds += parts[2];
-                } else if (parts.length === 2) { // MM:SS
+                } else if (parts.length === 2) {
                     seconds += parts[0] * 60;
                     seconds += parts[1];
                 }
@@ -534,7 +532,7 @@
         // ==============================================================================
         // --- 5. SEED FUNCTION (FOR DEV CONSOLE USE) ---
         // ==============================================================================
-        async function seedDatabase() {
+        const seedDatabase = async () => {
             console.log("This will POPULATE the 'categories' collection. It is critical that you MANUALLY delete the collection in the Firebase Console first for a clean seed.");
             if (!confirm("This will overwrite existing data. Are you sure you want to continue?")) return;
 
