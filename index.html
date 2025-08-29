@@ -73,291 +73,294 @@
     <main id="app-container"></main>
 
     <script type="module">
-        // ==============================================================================
-        // --- 1. CONFIG & APP STATE ---
-        // ==============================================================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getFirestore, collection, getDocs, doc, getDoc, collectionGroup, query, where, orderBy, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyDepZjZreEE-J_BbKPZzIU9bNmc1-Z1EpU",
-            authDomain: "smw-mobile-leaderboard.firebaseapp.com",
-            projectId: "smw-mobile-leaderboard",
-            storageBucket: "smw-mobile-leaderboard.firebasestorage.app",
-            messagingSenderId: "630687938724",
-            appId: "1:630687938724:web:90bd99d54d951625264e31"
-        };
-        
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        // *** BUG FIX: Declare appContainer as let, define it inside DOMContentLoaded ***
-        let appContainer; 
-
-        const appState = {
-            isModerator: false,
-            categoriesCache: [],
-            subcategoriesCache: {},
-            currentListener: null,
-        };
-
-        // ==============================================================================
-        // --- 2. ROUTER & NAVIGATION ---
-        // ==============================================================================
-        function router() {
-            if (appState.currentListener) {
-                appState.currentListener();
-                appState.currentListener = null;
-            }
-
-            const hash = window.location.hash || '#home';
-            if (hash === '#home') {
-                showCategoriesPage();
-            } else if (hash.startsWith('#category/')) {
-                const categoryId = hash.substring('#category/'.length);
-                showSubcategoriesPage(categoryId);
-            } else if (hash.startsWith('#subcategory/')) {
-                const [categoryId, subcategoryId] = hash.substring('#subcategory/'.length).split('/');
-                showLeaderboard(categoryId, subcategoryId);
-            } else if (hash === '#modqueue') {
-                showModQueuePage();
-            } else if (hash === '#worldrecords') {
-                showWorldRecordsPage();
-            } else {
-                window.location.hash = '#home';
-            }
-        }
-        
-        // ==============================================================================
-        // --- 3. RENDER FUNCTIONS ---
-        // ==============================================================================
-        function renderLoader(message) { appContainer.innerHTML = `<div class="loader">${message}</div>`; }
-        function renderError(message) { appContainer.innerHTML = `<h2>${message}</h2>`; }
-
-        async function loadCategories() {
-            if (appState.categoriesCache.length > 0) return appState.categoriesCache;
-            try {
-                const q = query(collection(db, 'categories'), orderBy('order'));
-                const snapshot = await getDocs(q);
-                appState.categoriesCache = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                return appState.categoriesCache;
-            } catch (error) { console.error(error); renderError("Error connecting to the database."); return []; }
-        }
-
-        async function loadSubcategories(categoryId) {
-            if (appState.subcategoriesCache[categoryId]) return appState.subcategoriesCache[categoryId];
-            try {
-                const q = query(collection(db, `categories/${categoryId}/subcategories`), orderBy('order'));
-                const snapshot = await getDocs(q);
-                const subcategories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                appState.subcategoriesCache[categoryId] = subcategories;
-                return subcategories;
-            } catch (error) { console.error(error); return []; }
-        }
-        
-        async function showCategoriesPage() {
-            renderLoader("Loading Categories...");
-            const categories = await loadCategories();
-            if (categories.length === 0) {
-                renderError('No categories found. Please MANUALLY DELETE the `categories` collection in Firebase and run `seedDatabase()` in the console (F12).');
-                return;
-            }
-            appContainer.innerHTML = `
-                <h2>Select a Category</h2>
-                <div class="grid-container">
-                    ${categories.map(cat => `<div class="card" onclick="window.location.hash='#category/${cat.id}'"><h3>${cat.name}</h3></div>`).join('')}
-                </div>`;
-        }
-
-        async function showSubcategoriesPage(categoryId) {
-            renderLoader("Loading...");
-            await loadCategories();
-            const category = appState.categoriesCache.find(c => c.id === categoryId);
-            if (!category) { window.location.hash = '#home'; return; }
-
-            const subcategories = await loadSubcategories(categoryId);
-            if (!subcategories || subcategories.length === 0) {
-                window.location.hash = `#subcategory/${categoryId}/default`;
-                return;
-            }
-
-            appContainer.innerHTML = `
-                <div class="breadcrumb"><a href="#home">Categories</a> / <span>${category.name}</span></div>
-                <h2>Select a Sub-category</h2>
-                <div class="grid-container">
-                    ${subcategories.map(sub => `<div class="card" onclick="window.location.hash='#subcategory/${categoryId}/${sub.id}'"><h3>${sub.name}</h3></div>`).join('')}
-                </div>`;
-        }
-        
-        async function showLeaderboard(categoryId, subcategoryId) {
-            renderLoader("Loading Leaderboard...");
-            await loadCategories();
-            await loadSubcategories(categoryId);
-
-            const category = appState.categoriesCache.find(c => c.id === categoryId);
-            const subcategory = appState.subcategoriesCache[categoryId]?.find(s => s.id === subcategoryId);
+        // *** APLICATIVO INICIA SOMENTE APÓS O DOM ESTAR PRONTO ***
+        document.addEventListener('DOMContentLoaded', () => {
             
-            const isDefaultSubcategory = subcategoryId === 'default' && (!appState.subcategoriesCache[categoryId] || appState.subcategoriesCache[categoryId].length === 0);
-            const leaderboardName = isDefaultSubcategory ? category.name : `${category.name}, ${subcategory.name}`;
-
-            if (!category) { window.location.hash = '#home'; return; }
-            if (!subcategory && !isDefaultSubcategory) { window.location.hash = `#category/${categoryId}`; return; }
+            // ==============================================================================
+            // --- 1. CONFIG & APP STATE ---
+            // ==============================================================================
+            const firebaseConfig = {
+                apiKey: "AIzaSyDepZjZreEE-J_BbKPZzIU9bNmc1-Z1EpU",
+                authDomain: "smw-mobile-leaderboard.firebaseapp.com",
+                projectId: "smw-mobile-leaderboard",
+                storageBucket: "smw-mobile-leaderboard.firebasestorage.app",
+                messagingSenderId: "630687938724",
+                appId: "1:630687938724:web:90bd99d54d951625264e31"
+            };
             
-            const runsCollectionRef = collection(db, `categories/${categoryId}/subcategories/${subcategoryId}/runs`);
-            const q = query(runsCollectionRef, where('status', '==', 'verified'), orderBy('time_numeric'));
+            const app = initializeApp(firebaseConfig);
+            const db = getFirestore(app);
+            const auth = getAuth(app);
+            
+            // *** CORREÇÃO: A variável é definida aqui, quando o elemento com certeza existe. ***
+            const appContainer = document.getElementById('app-container');
 
-            appState.currentListener = onSnapshot(q, (snapshot) => {
-                const runs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
-                let breadcrumbHtml = `<a href="#home">Categories</a> / `;
-                if (subcategory) {
-                    breadcrumbHtml += `<a href="#category/${categoryId}">${category.name}</a> / <span>${subcategory.name}</span>`;
+            const appState = {
+                isModerator: false,
+                categoriesCache: [],
+                subcategoriesCache: {},
+                currentListener: null,
+            };
+
+            // ==============================================================================
+            // --- 2. ROUTER & NAVIGATION ---
+            // ==============================================================================
+            function router() {
+                if (appState.currentListener) {
+                    appState.currentListener();
+                    appState.currentListener = null;
+                }
+
+                const hash = window.location.hash || '#home';
+                if (hash === '#home') {
+                    showCategoriesPage();
+                } else if (hash.startsWith('#category/')) {
+                    const categoryId = hash.substring('#category/'.length);
+                    showSubcategoriesPage(categoryId);
+                } else if (hash.startsWith('#subcategory/')) {
+                    const [categoryId, subcategoryId] = hash.substring('#subcategory/'.length).split('/');
+                    showLeaderboard(categoryId, subcategoryId);
+                } else if (hash === '#modqueue') {
+                    showModQueuePage();
+                } else if (hash === '#worldrecords') {
+                    showWorldRecordsPage();
                 } else {
-                    breadcrumbHtml += `<span>${category.name}</span>`;
+                    window.location.hash = '#home';
+                }
+            }
+            
+            // ==============================================================================
+            // --- 3. RENDER FUNCTIONS ---
+            // ==============================================================================
+            function renderLoader(message) { appContainer.innerHTML = `<div class="loader">${message}</div>`; }
+            function renderError(message) { appContainer.innerHTML = `<h2>${message}</h2>`; }
+
+            async function loadCategories() {
+                if (appState.categoriesCache.length > 0) return appState.categoriesCache;
+                try {
+                    const q = query(collection(db, 'categories'), orderBy('order'));
+                    const snapshot = await getDocs(q);
+                    appState.categoriesCache = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    return appState.categoriesCache;
+                } catch (error) { console.error(error); renderError("Error connecting to the database."); return []; }
+            }
+
+            async function loadSubcategories(categoryId) {
+                if (appState.subcategoriesCache[categoryId]) return appState.subcategoriesCache[categoryId];
+                try {
+                    const q = query(collection(db, `categories/${categoryId}/subcategories`), orderBy('order'));
+                    const snapshot = await getDocs(q);
+                    const subcategories = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    appState.subcategoriesCache[categoryId] = subcategories;
+                    return subcategories;
+                } catch (error) { console.error(error); return []; }
+            }
+            
+            async function showCategoriesPage() {
+                renderLoader("Loading Categories...");
+                const categories = await loadCategories();
+                if (categories.length === 0) {
+                    renderError('No categories found. Please MANUALLY DELETE the `categories` collection in Firebase and run `seedDatabase()` in the console (F12).');
+                    return;
+                }
+                appContainer.innerHTML = `
+                    <h2>Select a Category</h2>
+                    <div class="grid-container">
+                        ${categories.map(cat => `<div class="card" onclick="window.location.hash='#category/${cat.id}'"><h3>${cat.name}</h3></div>`).join('')}
+                    </div>`;
+            }
+
+            async function showSubcategoriesPage(categoryId) {
+                renderLoader("Loading...");
+                await loadCategories();
+                const category = appState.categoriesCache.find(c => c.id === categoryId);
+                if (!category) { window.location.hash = '#home'; return; }
+
+                const subcategories = await loadSubcategories(categoryId);
+                if (!subcategories || subcategories.length === 0) {
+                    window.location.hash = `#subcategory/${categoryId}/default`;
+                    return;
                 }
 
                 appContainer.innerHTML = `
-                    <div class="breadcrumb">${breadcrumbHtml}</div>
-                    <h2>${leaderboardName} Leaderboard</h2>
-                    <div class="table-container">
-                        <table>
-                            <thead><tr><th>#</th><th>Runner</th><th>Time</th><th>Date</th><th>Video</th>${appState.isModerator ? '<th>Actions</th>' : ''}</tr></thead>
-                            <tbody>
-                            ${runs.map((run, index) => {
-                                const runDate = run.date ? new Date(run.date.replace(/-/g, '\/')).toLocaleDateString() : 'N/A';
-                                return `<tr>
-                                    <td>${index + 1}</td>
-                                    <td>${run.runner}</td>
-                                    <td>${run.time_str}</td>
-                                    <td>${runDate}</td>
-                                    <td><a href="${run.videoLink}" target="_blank" rel="noopener noreferrer">Link</a></td>
-                                    ${appState.isModerator ? `
-                                        <td><div class="mod-actions">
-                                            <button onclick="window.openEditModal('${categoryId}', '${subcategoryId}', '${run.id}')" title="Edit">✏️</button>
-                                            <button onclick="window.deleteRun('${categoryId}', '${subcategoryId}', '${run.id}')" title="Delete">🗑️</button>
-                                        </div></td>` : ''}
-                                </tr>`;
-                            }).join('') || '<tr><td colspan="6">No verified runs submitted yet.</td></tr>'}
-                            </tbody>
-                        </table>
+                    <div class="breadcrumb"><a href="#home">Categories</a> / <span>${category.name}</span></div>
+                    <h2>Select a Sub-category</h2>
+                    <div class="grid-container">
+                        ${subcategories.map(sub => `<div class="card" onclick="window.location.hash='#subcategory/${categoryId}/${sub.id}'"><h3>${sub.name}</h3></div>`).join('')}
                     </div>`;
-            }, error => {
-                console.error("Error fetching leaderboard:", error);
-                renderError("Failed to load leaderboard.");
-            });
-        }
-        
-        async function showModQueuePage() { /* ... unchanged ... */ }
-        async function showWorldRecordsPage() { /* ... unchanged ... */ }
-        
-        function updateModeratorUI(user) {
-            appState.isModerator = !!user;
-            const modSection = document.getElementById('moderator-auth-section');
-            const modQueueLink = document.getElementById('mod-queue-link-container');
-
-            if (user) {
-                modSection.innerHTML = `<a class="action-button" onclick="window.logoutModerator()">Logout (${user.email})</a>`;
-                modQueueLink.innerHTML = `<a href="#modqueue">Moderation Queue</a>`;
-            } else {
-                modSection.innerHTML = `<a class="action-button" onclick="window.openLoginModal()">Moderator Login</a>`;
-                modQueueLink.innerHTML = '';
             }
-            router();
-        }
-
-        async function handleLogin(event) {
-            event.preventDefault();
-            const form = event.target;
-            const errorElement = document.getElementById('login-error');
-            errorElement.style.display = 'none';
-            try {
-                await signInWithEmailAndPassword(auth, form.email.value, form.password.value);
-                closeModal('login-modal');
-            } catch (error) {
-                console.error("Login failed:", error.message);
-                errorElement.textContent = "Login failed. Please check your email and password.";
-                errorElement.style.display = 'block';
-            }
-        }
-        
-        async function logoutModerator() { await signOut(auth); }
-
-        function openModal(modalId) { document.getElementById(modalId).style.display = 'flex'; }
-        function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
-        function openLoginModal() { openModal('login-modal'); }
-        
-        async function openSubmissionModal() {
-            await loadCategories();
-            const categorySelect = document.getElementById('category-select');
-            const subcategorySelect = document.getElementById('subcategory-select');
             
-            categorySelect.innerHTML = '<option value="">-- Select a Category --</option>' + appState.categoriesCache.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
-            subcategorySelect.innerHTML = '<option value="">-- Select Category First --</option>';
-            subcategorySelect.disabled = true;
-            document.getElementById('subcategory-group').style.display = 'none';
+            async function showLeaderboard(categoryId, subcategoryId) {
+                renderLoader("Loading Leaderboard...");
+                await loadCategories();
+                await loadSubcategories(categoryId);
 
-            categorySelect.onchange = async () => {
-                const categoryId = categorySelect.value;
-                subcategorySelect.innerHTML = '<option value="">Loading...</option>';
-                if (!categoryId) {
-                    subcategorySelect.innerHTML = '<option value="">-- Select Category First --</option>';
-                    subcategorySelect.disabled = true;
-                    document.getElementById('subcategory-group').style.display = 'none';
-                    return;
-                }
-                const subcategories = await loadSubcategories(categoryId);
-                if(subcategories.length > 0) {
-                    subcategorySelect.innerHTML = '<option value="">-- Select Sub-category --</option>' + subcategories.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-                    subcategorySelect.disabled = false;
-                    document.getElementById('subcategory-group').style.display = 'block';
-                } else {
-                    subcategorySelect.value = 'default';
-                    document.getElementById('subcategory-group').style.display = 'none';
-                }
-            };
-            openModal('submission-modal');
-        }
+                const category = appState.categoriesCache.find(c => c.id === categoryId);
+                const subcategory = appState.subcategoriesCache[categoryId]?.find(s => s.id === subcategoryId);
+                
+                const isDefaultSubcategory = subcategoryId === 'default' && (!appState.subcategoriesCache[categoryId] || appState.subcategoriesCache[categoryId].length === 0);
+                const leaderboardName = isDefaultSubcategory ? category.name : `${category.name}, ${subcategory.name}`;
 
-        async function openEditModal(categoryId, subcategoryId, runId) {
-            if (!appState.isModerator) return;
-            try {
-                const runRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/runs`, runId);
-                const runDoc = await getDoc(runRef);
-                if (!runDoc.exists()) { alert("Run not found!"); return; }
-                const runData = runDoc.data();
+                if (!category) { window.location.hash = '#home'; return; }
+                if (!subcategory && !isDefaultSubcategory) { window.location.hash = `#category/${categoryId}`; return; }
                 
-                document.getElementById('edit-run-id').value = runId;
-                document.getElementById('edit-category-id').value = categoryId;
-                document.getElementById('edit-subcategory-id').value = subcategoryId;
-                document.getElementById('edit-runner').value = runData.runner;
-                document.getElementById('edit-time').value = runData.time_str;
-                document.getElementById('edit-date').value = runData.date;
-                document.getElementById('edit-videoLink').value = runData.videoLink;
-                
-                openModal('edit-run-modal');
-            } catch(error) {
-                console.error("Error opening edit modal:", error);
-                alert("Could not load run data for editing.");
+                const runsCollectionRef = collection(db, `categories/${categoryId}/subcategories/${subcategoryId}/runs`);
+                const q = query(runsCollectionRef, where('status', '==', 'verified'), orderBy('time_numeric'));
+
+                appState.currentListener = onSnapshot(q, (snapshot) => {
+                    const runs = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
+                    let breadcrumbHtml = `<a href="#home">Categories</a> / `;
+                    if (subcategory) {
+                        breadcrumbHtml += `<a href="#category/${categoryId}">${category.name}</a> / <span>${subcategory.name}</span>`;
+                    } else {
+                        breadcrumbHtml += `<span>${category.name}</span>`;
+                    }
+
+                    appContainer.innerHTML = `
+                        <div class="breadcrumb">${breadcrumbHtml}</div>
+                        <h2>${leaderboardName} Leaderboard</h2>
+                        <div class="table-container">
+                            <table>
+                                <thead><tr><th>#</th><th>Runner</th><th>Time</th><th>Date</th><th>Video</th>${appState.isModerator ? '<th>Actions</th>' : ''}</tr></thead>
+                                <tbody>
+                                ${runs.map((run, index) => {
+                                    const runDate = run.date ? new Date(run.date.replace(/-/g, '\/')).toLocaleDateString() : 'N/A';
+                                    return `<tr>
+                                        <td>${index + 1}</td>
+                                        <td>${run.runner}</td>
+                                        <td>${run.time_str}</td>
+                                        <td>${runDate}</td>
+                                        <td><a href="${run.videoLink}" target="_blank" rel="noopener noreferrer">Link</a></td>
+                                        ${appState.isModerator ? `
+                                            <td><div class="mod-actions">
+                                                <button onclick="window.openEditModal('${categoryId}', '${subcategoryId}', '${run.id}')" title="Edit">✏️</button>
+                                                <button onclick="window.deleteRun('${categoryId}', '${subcategoryId}', '${run.id}')" title="Delete">🗑️</button>
+                                            </div></td>` : ''}
+                                    </tr>`;
+                                }).join('') || '<tr><td colspan="6">No verified runs submitted yet.</td></tr>'}
+                                </tbody>
+                            </table>
+                        </div>`;
+                }, error => {
+                    console.error("Error fetching leaderboard:", error);
+                    renderError("Failed to load leaderboard.");
+                });
             }
-        }
+            
+            async function showModQueuePage() { /* ... unchanged ... */ }
+            async function showWorldRecordsPage() { /* ... unchanged ... */ }
+            
+            // ==============================================================================
+            // --- 4. ACTIONS & MODERATION ---
+            // ==============================================================================
+            function updateModeratorUI(user) {
+                appState.isModerator = !!user;
+                const modSection = document.getElementById('moderator-auth-section');
+                const modQueueLink = document.getElementById('mod-queue-link-container');
 
-        function parseTimeToNumeric(timeStr) { /* ... unchanged ... */ }
-        async function handleRunSubmission(event) { /* ... unchanged ... */ }
-        async function handleRunUpdate(event) { /* ... unchanged ... */ }
-        async function updateRunStatus(categoryId, subcategoryId, runId, newStatus) { /* ... unchanged ... */ }
-        async function deleteRun(categoryId, subcategoryId, runId) { /* ... unchanged ... */ }
-        
-        const seedDatabase = async () => { /* ... unchanged ... */ }
-        
-        // ==============================================================================
-        // --- 6. INITIALIZATION & GLOBAL FUNCTIONS ---
-        // ==============================================================================
-        window.addEventListener('hashchange', router);
-        document.addEventListener('DOMContentLoaded', () => {
-            // *** BUG FIX: Define appContainer AFTER the DOM is loaded ***
-            appContainer = document.getElementById('app-container');
+                if (user) {
+                    modSection.innerHTML = `<a class="action-button" onclick="window.logoutModerator()">Logout (${user.email})</a>`;
+                    modQueueLink.innerHTML = `<a href="#modqueue">Moderation Queue</a>`;
+                } else {
+                    modSection.innerHTML = `<a class="action-button" onclick="window.openLoginModal()">Moderator Login</a>`;
+                    modQueueLink.innerHTML = '';
+                }
+                router();
+            }
 
+            async function handleLogin(event) {
+                event.preventDefault();
+                const form = event.target;
+                const errorElement = document.getElementById('login-error');
+                errorElement.style.display = 'none';
+                try {
+                    await signInWithEmailAndPassword(auth, form.email.value, form.password.value);
+                    closeModal('login-modal');
+                } catch (error) {
+                    console.error("Login failed:", error.message);
+                    errorElement.textContent = "Login failed. Please check your email and password.";
+                    errorElement.style.display = 'block';
+                }
+            }
+            
+            async function logoutModerator() { await signOut(auth); }
+
+            function openModal(modalId) { document.getElementById(modalId).style.display = 'flex'; }
+            function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
+            function openLoginModal() { openModal('login-modal'); }
+            
+            async function openSubmissionModal() {
+                await loadCategories();
+                const categorySelect = document.getElementById('category-select');
+                const subcategorySelect = document.getElementById('subcategory-select');
+                
+                categorySelect.innerHTML = '<option value="">-- Select a Category --</option>' + appState.categoriesCache.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                subcategorySelect.innerHTML = '<option value="">-- Select Category First --</option>';
+                subcategorySelect.disabled = true;
+                document.getElementById('subcategory-group').style.display = 'none';
+
+                categorySelect.onchange = async () => {
+                    const categoryId = categorySelect.value;
+                    subcategorySelect.innerHTML = '<option value="">Loading...</option>';
+                    if (!categoryId) {
+                        subcategorySelect.innerHTML = '<option value="">-- Select Category First --</option>';
+                        subcategorySelect.disabled = true;
+                        document.getElementById('subcategory-group').style.display = 'none';
+                        return;
+                    }
+                    const subcategories = await loadSubcategories(categoryId);
+                    if(subcategories.length > 0) {
+                        subcategorySelect.innerHTML = '<option value="">-- Select Sub-category --</option>' + subcategories.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                        subcategorySelect.disabled = false;
+                        document.getElementById('subcategory-group').style.display = 'block';
+                    } else {
+                        subcategorySelect.value = 'default';
+                        document.getElementById('subcategory-group').style.display = 'none';
+                    }
+                };
+                openModal('submission-modal');
+            }
+
+            async function openEditModal(categoryId, subcategoryId, runId) {
+                if (!appState.isModerator) return;
+                try {
+                    const runRef = doc(db, `categories/${categoryId}/subcategories/${subcategoryId}/runs`, runId);
+                    const runDoc = await getDoc(runRef);
+                    if (!runDoc.exists()) { alert("Run not found!"); return; }
+                    const runData = runDoc.data();
+                    
+                    document.getElementById('edit-run-id').value = runId;
+                    document.getElementById('edit-category-id').value = categoryId;
+                    document.getElementById('edit-subcategory-id').value = subcategoryId;
+                    document.getElementById('edit-runner').value = runData.runner;
+                    document.getElementById('edit-time').value = runData.time_str;
+                    document.getElementById('edit-date').value = runData.date;
+                    document.getElementById('edit-videoLink').value = runData.videoLink;
+                    
+                    openModal('edit-run-modal');
+                } catch(error) {
+                    console.error("Error opening edit modal:", error);
+                    alert("Could not load run data for editing.");
+                }
+            }
+
+            function parseTimeToNumeric(timeStr) { /* ... unchanged ... */ }
+            async function handleRunSubmission(event) { /* ... unchanged ... */ }
+            async function handleRunUpdate(event) { /* ... unchanged ... */ }
+            async function updateRunStatus(categoryId, subcategoryId, runId, newStatus) { /* ... unchanged ... */ }
+            async function deleteRun(categoryId, subcategoryId, runId) { /* ... unchanged ... */ }
+            
+            const seedDatabase = async () => { /* ... unchanged ... */ }
+            
+            // ==============================================================================
+            // --- 6. INITIALIZATION & GLOBAL FUNCTIONS ---
+            // ==============================================================================
+            window.addEventListener('hashchange', router);
+            
             document.body.insertAdjacentHTML('beforeend', `
                 <div id="submission-modal" class="modal">
                     <div class="modal-content">
