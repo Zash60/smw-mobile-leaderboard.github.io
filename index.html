@@ -35,6 +35,7 @@
         #mod-queue-container td { vertical-align: middle; }
         .wr-list { font-size: 0.9em; color: var(--secondary-color); list-style-type: none; padding-left: 0; }
         .error-message { color: var(--rejected-color); margin-top: 1rem; display: none; }
+        #subcategory-select-wrapper { display: block; }
 
         @media (max-width: 600px) {
             body { padding: 0.5rem; }
@@ -106,7 +107,8 @@
         window.updateRunStatus = updateRunStatus;
         window.deleteRun = deleteRun;
         window.seedDatabase = seedDatabase;
-
+        window.handleCategoryClick = handleCategoryClick;
+        
         // ==============================================================================
         // --- 2. ROUTER & NAVIGATION ---
         // ==============================================================================
@@ -173,11 +175,20 @@
                 <h2>Select a Category</h2>
                 <div class="grid-container">
                     ${categories.map(cat => `
-                        <div class="card" onclick="window.location.hash='#category/${cat.id}'">
+                        <div class="card" onclick="handleCategoryClick('${cat.id}')">
                             <h3>${cat.name}</h3>
                         </div>
                     `).join('')}
                 </div>`;
+        }
+        
+        async function handleCategoryClick(categoryId) {
+            const subcategories = await loadSubcategories(categoryId);
+            if (subcategories.length > 1 || (subcategories.length === 1 && subcategories[0].id !== 'default')) {
+                window.location.hash = `#category/${categoryId}`;
+            } else {
+                window.location.hash = `#leaderboard/${categoryId}/default`;
+            }
         }
         
         async function showSubcategoriesPage(categoryId) {
@@ -213,11 +224,16 @@
 
             appState.currentListener = onSnapshot(q, (snapshot) => {
                 const runs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                const title = subcategory.id === 'default' ? category.name : `${category.name} - ${subcategory.name}`;
+                const breadcrumb = subcategory.id === 'default' 
+                    ? `<span>${category.name}</span>`
+                    : `<a href="#category/${category.id}">${category.name}</a> / <span>${subcategory.name}</span>`;
+
                 appContainer.innerHTML = `
                     <div class="breadcrumb">
-                        <a href="#home">Categories</a> / <a href="#category/${category.id}">${category.name}</a> / <span>${subcategory.name}</span>
+                        <a href="#home">Categories</a> / ${breadcrumb}
                     </div>
-                    <h2>${category.name} - ${subcategory.name}</h2>
+                    <h2>${title}</h2>
                     <div class="table-container">
                         <table>
                             <thead><tr><th>#</th><th>Runner</th><th>Time</th><th>Date</th><th>Video</th>${appState.isModerator ? '<th>Actions</th>' : ''}</tr></thead>
@@ -242,7 +258,7 @@
                     </div>`;
             }, error => {
                 console.error("Error fetching leaderboard:", error);
-                renderError("Failed to load leaderboard.");
+                renderError("Failed to load leaderboard. You might need to create an index. Check the console for a link.");
             });
         }
         
@@ -279,10 +295,11 @@
                                     const category = appState.categoriesCache.find(c => c.id === run.categoryId);
                                     const subcategory = appState.subcategoriesCache[run.categoryId]?.find(s => s.id === run.subcategoryId);
                                     const runDate = run.date ? new Date(run.date.replace(/-/g, '\/')).toLocaleDateString() : 'N/A';
+                                    const subcatName = subcategory?.id === 'default' ? '' : ` / ${subcategory?.name || '...'}`;
                                     return `
                                         <tr>
                                             <td>${run.runner}</td>
-                                            <td>${category?.name || '...'} / ${subcategory?.name || '...'}</td>
+                                            <td>${category?.name || '...'}${subcatName}</td>
                                             <td>${run.time_str}</td>
                                             <td>${runDate}</td>
                                             <td><a href="${run.videoLink}" target="_blank">Link</a></td>
@@ -332,7 +349,7 @@
                         }
                         const category = appState.categoriesCache.find(c => c.id === subcatInfo.categoryId);
                         const subcategory = appState.subcategoriesCache[subcatInfo.categoryId]?.find(s => s.id === subcatInfo.subcategoryId);
-                        const wrTitle = `${category?.name || ''} - ${subcategory?.name || ''}`;
+                        const wrTitle = subcategory?.id === 'default' ? category?.name : `${category?.name} - ${subcategory?.name}`;
 
                         if (!wrData[normalizedKey]) {
                             wrData[normalizedKey] = { displayName: originalRunnerName, count: 0, titles: [] };
@@ -415,21 +432,32 @@
             const categories = await loadCategories();
             const catSelect = document.getElementById('category-select');
             const subcatSelect = document.getElementById('subcategory-select');
+            const subcatWrapper = document.getElementById('subcategory-select-wrapper');
             
             catSelect.innerHTML = '<option value="">-- Select a Category --</option>' + categories.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
             subcatSelect.innerHTML = '<option value="">-- Select Category First --</option>';
             subcatSelect.disabled = true;
+            subcatWrapper.style.display = 'block';
 
             catSelect.onchange = async () => {
                 const categoryId = catSelect.value;
+                subcatSelect.innerHTML = '<option value="">Loading...</option>';
                 if (!categoryId) {
                     subcatSelect.innerHTML = '<option value="">-- Select Category First --</option>';
                     subcatSelect.disabled = true;
+                    subcatWrapper.style.display = 'block';
                     return;
                 }
                 const subcategories = await loadSubcategories(categoryId);
-                subcatSelect.innerHTML = '<option value="">-- Select a Subcategory --</option>' + subcategories.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
-                subcatSelect.disabled = false;
+                if (subcategories.length === 1 && subcategories[0].id === 'default') {
+                    subcatSelect.innerHTML = `<option value="default" selected>${subcategories[0].name}</option>`;
+                    subcatSelect.disabled = true;
+                    subcatWrapper.style.display = 'none';
+                } else {
+                    subcatSelect.innerHTML = '<option value="">-- Select a Subcategory --</option>' + subcategories.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                    subcatSelect.disabled = false;
+                    subcatWrapper.style.display = 'block';
+                }
             };
             
             openModal('submission-modal');
@@ -614,29 +642,29 @@
 
             const seedData = {
                 categories: [
-                    { id: "96-exit", name: "96 Exit", order: 1, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
-                    { id: "all-castles", name: "All Castles", order: 2, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
-                    { id: "no-starworld", name: "No Starworld", order: 3, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
+                    { id: "96-exit", name: "96 Exit", order: 1, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
+                    { id: "all-castles", name: "All Castles", order: 2, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
+                    { id: "no-starworld", name: "No Starworld", order: 3, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
                     { id: "11-exit", name: "11 Exit", order: 4, subcategories: [ 
-                        { id: "cloud", name: "Cloud", order: 1, runs: [] },
-                        { id: "orb", name: "Orb", order: 2, runs: [] },
-                        { id: "glitchless", name: "Glitchless", order: 3, runs: [] },
+                        { id: "cloud", name: "Cloud", order: 1 },
+                        { id: "orb", name: "Orb", order: 2 },
+                        { id: "glitchless", name: "Glitchless", order: 3 },
                     ]},
-                    { id: "0-exit", name: "0 Exit", order: 5, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
-                    { id: "95-exit-no-cape", name: "95 Exit, No Cape", order: 6, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
-                    { id: "all-castles-no-cape", name: "All Castles, No Cape", order: 7, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
-                    { id: "no-cape-no-starworld", name: "No Cape, No Starworld", order: 8, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
+                    { id: "0-exit", name: "0 Exit", order: 5, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
+                    { id: "95-exit-no-cape", name: "95 Exit, No Cape", order: 6, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
+                    { id: "all-castles-no-cape", name: "All Castles, No Cape", order: 7, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
+                    { id: "no-cape-no-starworld", name: "No Cape, No Starworld", order: 8, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
                     { id: "11-exit-no-cape", name: "11 Exit, No Cape", order: 9, subcategories: [ 
-                        { id: "cloud", name: "Cloud", order: 1, runs: [] },
-                        { id: "orb", name: "Orb", order: 2, runs: [] },
-                        { id: "glitchless", name: "Glitchless", order: 3, runs: [] },
+                        { id: "cloud", name: "Cloud", order: 1 },
+                        { id: "orb", name: "Orb", order: 2 },
+                        { id: "glitchless", name: "Glitchless", order: 3 },
                     ]},
-                    { id: "all-castles-small-only", name: "All Castles, Small Only", order: 10, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
-                    { id: "no-starworld-small-only", name: "No Starworld, Small Only", order: 11, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
-                    { id: "small-only", name: "Small Only", order: 12, subcategories: [ {id: "any", name: "Any%", order: 1, runs: []} ]},
+                    { id: "all-castles-small-only", name: "All Castles, Small Only", order: 10, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
+                    { id: "no-starworld-small-only", name: "No Starworld, Small Only", order: 11, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
+                    { id: "small-only", name: "Small Only", order: 12, subcategories: [ {id: "default", name: "Any%", order: 1} ]},
                     { id: "lunar-dragon", name: "Lunar Dragon", order: 13, subcategories: [ 
-                        { id: "glitchless", name: "Glitchless", order: 1, runs: [] },
-                        { id: "glitches", name: "Glitches", order: 2, runs: [] },
+                        { id: "glitchless", name: "Glitchless", order: 1 },
+                        { id: "glitches", name: "Glitches", order: 2 },
                     ]},
                 ]
             };
@@ -675,7 +703,9 @@
                         <h2>Submit New Run</h2>
                         <form id="submission-form" onsubmit="handleRunSubmission(event)">
                             <label for="category-select">Category:</label><select id="category-select" required></select>
-                            <label for="subcategory-select">Subcategory:</label><select id="subcategory-select" required disabled></select>
+                            <div id="subcategory-select-wrapper">
+                                <label for="subcategory-select">Subcategory:</label><select id="subcategory-select" required></select>
+                            </div>
                             <label for="runner">Runner:</label><input type="text" id="runner" required>
                             <label for="time">Time (e.g., 48:15 or 1:23:45):</label><input type="text" id="time" required>
                             <label for="date">Date:</label><input type="date" id="date" required>
