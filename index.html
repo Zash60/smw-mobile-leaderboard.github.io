@@ -61,26 +61,31 @@
     </header>
     <main id="app-container"></main>
 
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-auth.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+        import { 
+            getFirestore, collection, getDocs, doc, collectionGroup,
+            query, where, orderBy, onSnapshot, addDoc, updateDoc, deleteDoc, writeBatch, getDoc
+        } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-firestore.js";
+        import { 
+            getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut 
+        } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
 
-    <script>
         // ==============================================================================
         // --- 1. CONFIG & APP STATE ---
         // ==============================================================================
         const firebaseConfig = {
-            apiKey: "AIzaSyDepZjZreEE-J_BbKPZzIU9bNmc1-Z1EpU",
-            authDomain: "smw-mobile-leaderboard.firebaseapp.com",
-            projectId: "smw-mobile-leaderboard",
-            storageBucket: "smw-mobile-leaderboard.firebasestorage.app",
-            messagingSenderId: "630687938724",
-            appId: "1:630687938724:web:90bd99d54d951625264e31"
+            apiKey: "AIzaSyBk2vOTjxk0MaWJVhDFALEEbE_v0IYsd-E",
+            authDomain: "smw-mobile-leaderboard2.firebaseapp.com",
+            projectId: "smw-mobile-leaderboard2",
+            storageBucket: "smw-mobile-leaderboard2.firebasestorage.app",
+            messagingSenderId: "924486924038",
+            appId: "1:924486924038:web:737b0ae58fb20a91bc5087"
         };
-        
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const auth = firebase.auth();
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+        const auth = getAuth(app);
 
         const appContainer = document.getElementById('app-container');
         const appState = {
@@ -89,6 +94,18 @@
             subcategoriesCache: {},
             currentListener: null,
         };
+        
+        window.openSubmissionModal = openSubmissionModal;
+        window.openEditModal = openEditModal;
+        window.openLoginModal = openLoginModal;
+        window.closeModal = closeModal;
+        window.handleRunSubmission = handleRunSubmission;
+        window.handleRunUpdate = handleRunUpdate;
+        window.handleLogin = handleLogin;
+        window.logoutModerator = logoutModerator;
+        window.updateRunStatus = updateRunStatus;
+        window.deleteRun = deleteRun;
+        window.seedDatabase = seedDatabase;
 
         // ==============================================================================
         // --- 2. ROUTER & NAVIGATION ---
@@ -126,7 +143,8 @@
         async function loadCategories() {
             if (appState.categoriesCache.length > 0) return appState.categoriesCache;
             try {
-                const snapshot = await db.collection('categories').orderBy('order').get();
+                const q = query(collection(db, "categories"), orderBy("order"));
+                const snapshot = await getDocs(q);
                 appState.categoriesCache = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 return appState.categoriesCache;
             } catch (error) { console.error(error); renderError("Error connecting to the database."); return []; }
@@ -135,7 +153,9 @@
         async function loadSubcategories(categoryId) {
             if (appState.subcategoriesCache[categoryId]) return appState.subcategoriesCache[categoryId];
              try {
-                const snapshot = await db.collection('categories').doc(categoryId).collection('subcategories').orderBy('order').get();
+                const subcategoriesCol = collection(db, "categories", categoryId, "subcategories");
+                const q = query(subcategoriesCol, orderBy("order"));
+                const snapshot = await getDocs(q);
                 const subcats = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 appState.subcategoriesCache[categoryId] = subcats;
                 return subcats;
@@ -187,11 +207,11 @@
             const subcategory = appState.subcategoriesCache[categoryId]?.find(s => s.id === subcategoryId);
 
             if (!category || !subcategory) { window.location.hash = '#home'; return; }
+            
+            const runsCollectionRef = collection(db, 'categories', categoryId, 'subcategories', subcategoryId, 'runs');
+            const q = query(runsCollectionRef, where('status', '==', 'verified'), orderBy('time_numeric'));
 
-            const runsCollection = db.collection('categories').doc(categoryId).collection('subcategories').doc(subcategoryId).collection('runs')
-                .where('status', '==', 'verified').orderBy('time_numeric');
-
-            appState.currentListener = runsCollection.onSnapshot(snapshot => {
+            appState.currentListener = onSnapshot(q, (snapshot) => {
                 const runs = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
                 appContainer.innerHTML = `
                     <div class="breadcrumb">
@@ -227,13 +247,13 @@
         }
         
         async function showModQueuePage() {
-            // This function logic remains very similar, just paths change
             if (!appState.isModerator) { window.location.hash = '#home'; return; }
             renderLoader("Loading Moderation Queue...");
             await loadCategories();
 
             try {
-                const pendingRunsSnapshot = await db.collectionGroup('runs').where('status', '==', 'pending').get();
+                const q = query(collectionGroup(db, 'runs'), where('status', '==', 'pending'));
+                const pendingRunsSnapshot = await getDocs(q);
                 const pendingRuns = [];
                 for (const doc of pendingRunsSnapshot.docs) {
                     const path = doc.ref.path.split('/');
@@ -279,7 +299,7 @@
                     </div>`;
             } catch (error) {
                 console.error("Error loading mod queue:", error);
-                renderError("Failed to load moderation queue. You may need to create a Firestore index. Check the console (F12) for a link.");
+                renderError("Failed to load moderation queue. You may need to create a Firestore index. Check the console (F12) for an error message with a link to create it.");
             }
         }
         
@@ -287,7 +307,8 @@
             renderLoader("Calculating World Records...");
             try {
                 await loadCategories();
-                const allRunsSnapshot = await db.collectionGroup('runs').where('status', '==', 'verified').get();
+                const q = query(collectionGroup(db, 'runs'), where('status', '==', 'verified'));
+                const allRunsSnapshot = await getDocs(q);
                 
                 const subcats = {};
                 for(const doc of allRunsSnapshot.docs){
@@ -365,7 +386,7 @@
             router();
         }
 
-        auth.onAuthStateChanged(user => { updateModeratorUI(user); });
+        onAuthStateChanged(auth, user => { updateModeratorUI(user); });
 
         async function handleLogin(event) {
             event.preventDefault();
@@ -375,7 +396,7 @@
             const errorElement = document.getElementById('login-error');
             errorElement.style.display = 'none';
             try {
-                await auth.signInWithEmailAndPassword(email, password);
+                await signInWithEmailAndPassword(auth, email, password);
                 closeModal('login-modal');
             } catch (error) {
                 console.error("Login failed:", error.message);
@@ -384,7 +405,7 @@
             }
         }
         
-        async function logoutModerator() { await auth.signOut(); }
+        async function logoutModerator() { await signOut(auth); }
 
         function openModal(modalId) { document.getElementById(modalId).style.display = 'flex'; }
         function closeModal(modalId) { document.getElementById(modalId).style.display = 'none'; }
@@ -417,8 +438,9 @@
         async function openEditModal(categoryId, subcategoryId, runId) {
             if (!appState.isModerator) return;
             try {
-                const runDoc = await db.collection('categories').doc(categoryId).collection('subcategories').doc(subcategoryId).collection('runs').doc(runId).get();
-                if (!runDoc.exists) { alert("Run not found!"); return; }
+                const runRef = doc(db, 'categories', categoryId, 'subcategories', subcategoryId, 'runs', runId);
+                const runDoc = await getDoc(runRef);
+                if (!runDoc.exists()) { alert("Run not found!"); return; }
                 const runData = runDoc.data();
                 
                 document.getElementById('edit-run-id').value = runId;
@@ -467,10 +489,12 @@
                 status: 'pending'
             };
 
-            const runsRef = db.collection('categories').doc(categoryId).collection('subcategories').doc(subcategoryId).collection('runs');
+            const runsRef = collection(db, 'categories', categoryId, 'subcategories', subcategoryId, 'runs');
             
             try {
-                const existingRunSnapshot = await runsRef.where('runner_normalized', '==', runData.runner_normalized).where('status', '==', 'verified').limit(1).get();
+                const q = query(runsRef, where('runner_normalized', '==', runData.runner_normalized), where('status', '==', 'verified'));
+                const existingRunSnapshot = await getDocs(q);
+
                 if (!existingRunSnapshot.empty) {
                     const existingTime = existingRunSnapshot.docs[0].data().time_numeric;
                     if (runData.time_numeric >= existingTime) {
@@ -480,7 +504,8 @@
                         return;
                     }
                 }
-                await runsRef.add(runData);
+                
+                await addDoc(runsRef, runData);
                 alert("Run submitted for moderation!");
                 closeModal('submission-modal');
                 form.reset();
@@ -517,7 +542,8 @@
             };
 
             try {
-                await db.collection('categories').doc(categoryId).collection('subcategories').doc(subcategoryId).collection('runs').doc(runId).update(updatedData);
+                const runRef = doc(db, 'categories', categoryId, 'subcategories', subcategoryId, 'runs', runId);
+                await updateDoc(runRef, updatedData);
                 alert("Run updated successfully!");
                 closeModal('edit-run-modal');
                 router();
@@ -534,16 +560,18 @@
             if (!appState.isModerator) return;
             if (!confirm(`Are you sure you want to ${newStatus} this run?`)) return;
 
-            const runRef = db.collection('categories').doc(categoryId).collection('subcategories').doc(subcategoryId).collection('runs').doc(runId);
+            const runRef = doc(db, 'categories', categoryId, 'subcategories', subcategoryId, 'runs', runId);
             try {
                 if (newStatus === 'verified') {
-                    const runDoc = await runRef.get();
-                    if (!runDoc.exists) throw new Error("Run not found");
+                    const runDoc = await getDoc(runRef);
+                    if (!runDoc.exists()) throw new Error("Run not found");
                     const runData = runDoc.data();
-                    const query = runRef.parent.where('runner_normalized', '==', runData.runner_normalized).where('status', '==', 'verified');
-                    const oldRunsSnapshot = await query.get();
                     
-                    const batch = db.batch();
+                    const runsCollectionRef = collection(db, 'categories', categoryId, 'subcategories', subcategoryId, 'runs');
+                    const q = query(runsCollectionRef, where('runner_normalized', '==', runData.runner_normalized), where('status', '==', 'verified'));
+                    const oldRunsSnapshot = await getDocs(q);
+                    
+                    const batch = writeBatch(db);
                     oldRunsSnapshot.forEach(doc => {
                         console.log(`Deleting old verified run ${doc.id} for runner ${runData.runner}`);
                         batch.delete(doc.ref);
@@ -551,8 +579,9 @@
                     
                     batch.update(runRef, { status: 'verified' });
                     await batch.commit();
+
                 } else {
-                    await runRef.update({ status: newStatus });
+                    await updateDoc(runRef, { status: newStatus });
                 }
                 alert(`Run has been ${newStatus}.`);
                 router();
@@ -566,7 +595,8 @@
             if (!appState.isModerator) return;
             if (!confirm("Are you sure you want to permanently delete this run? This cannot be undone.")) return;
             try {
-                await db.collection('categories').doc(categoryId).collection('subcategories').doc(subcategoryId).collection('runs').doc(runId).delete();
+                const runRef = doc(db, 'categories', categoryId, 'subcategories', subcategoryId, 'runs', runId);
+                await deleteDoc(runRef);
                 alert("Run deleted successfully.");
                 router();
             } catch (error) {
@@ -613,16 +643,15 @@
             
             try {
                 console.log("Starting database seed...");
-                const batch = db.batch();
-                const categoriesCollection = db.collection('categories');
+                const batch = writeBatch(db);
+                const categoriesCollection = collection(db, 'categories');
                 
                 for (const category of seedData.categories) {
-                    const categoryRef = categoriesCollection.doc(category.id);
+                    const categoryRef = doc(categoriesCollection, category.id);
                     batch.set(categoryRef, { name: category.name, order: category.order });
                     for (const subcategory of category.subcategories) {
-                        const subcategoryRef = categoryRef.collection('subcategories').doc(subcategory.id);
+                        const subcategoryRef = doc(categoryRef, 'subcategories', subcategory.id);
                         batch.set(subcategoryRef, { name: subcategory.name, order: subcategory.order });
-                        // No runs to add in this version
                     }
                 }
                 await batch.commit();
@@ -685,7 +714,7 @@
                 </div>
             `);
 
-            auth.onAuthStateChanged(user => {
+            onAuthStateChanged(auth, user => {
                 updateModeratorUI(user);
             });
             
