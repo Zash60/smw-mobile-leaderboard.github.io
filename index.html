@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>SMW Mobile Speedrun Leaderboard</title>
     <style>
         :root {
@@ -65,7 +65,7 @@
             <span id="mod-queue-link-container"></span>
         </nav>
         <div id="user-actions" style="margin-top: 1rem;">
-            <a class="action-button" onclick="openSubmissionModal()">Submit Run</a>
+            <a class="action-button" onclick="window.openSubmissionModal()">Submit Run</a>
             <span style="color: #555; margin: 0 10px;">|</span>
             <span id="moderator-auth-section"></span>
         </div>
@@ -77,7 +77,7 @@
         // --- 1. CONFIG & APP STATE ---
         // ==============================================================================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-        import { getFirestore, collection, getDocs, doc, collectionGroup, query, where, orderBy, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, doc, getDoc, collectionGroup, query, where, orderBy, onSnapshot, writeBatch, addDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 
         const firebaseConfig = {
@@ -97,7 +97,7 @@
         const appState = {
             isModerator: false,
             categoriesCache: [],
-            currentListener: null, // This will be the unsubscribe function
+            currentListener: null,
         };
 
         // ==============================================================================
@@ -105,7 +105,7 @@
         // ==============================================================================
         function router() {
             if (appState.currentListener) {
-                appState.currentListener(); // Unsubscribe from previous listener
+                appState.currentListener();
                 appState.currentListener = null;
             }
 
@@ -325,10 +325,6 @@
             router();
         }
 
-        onAuthStateChanged(auth, user => {
-            updateModeratorUI(user);
-        });
-
         async function handleLogin(event) {
             event.preventDefault();
             const form = event.target;
@@ -361,7 +357,7 @@
             if (!appState.isModerator) return;
             try {
                 const runRef = doc(db, 'categories', categoryId, 'runs', runId);
-                const runDoc = await getDocs(runRef);
+                const runDoc = await getDoc(runRef);
                 if (!runDoc.exists()) { alert("Run not found!"); return; }
                 const runData = runDoc.data();
                 
@@ -585,9 +581,9 @@
             document.body.insertAdjacentHTML('beforeend', `
                 <div id="submission-modal" class="modal">
                     <div class="modal-content">
-                        <span class="close-btn" onclick="closeModal('submission-modal')">&times;</span>
+                        <span class="close-btn" onclick="window.closeModal('submission-modal')">&times;</span>
                         <h2>Submit New Run</h2>
-                        <form id="submission-form" onsubmit="handleRunSubmission(event)">
+                        <form id="submission-form" onsubmit="window.handleRunSubmission(event)">
                             <label for="category-select">Category:</label><select id="category-select" required></select>
                             <label for="runner">Runner:</label><input type="text" id="runner" required>
                             <label for="time">Time (e.g., 47:15 or 1:23:45):</label><input type="text" id="time" required>
@@ -599,9 +595,9 @@
                 </div>
                 <div id="edit-run-modal" class="modal">
                     <div class="modal-content">
-                        <span class="close-btn" onclick="closeModal('edit-run-modal')">&times;</span>
+                        <span class="close-btn" onclick="window.closeModal('edit-run-modal')">&times;</span>
                         <h2>Edit Run</h2>
-                        <form id="edit-run-form" onsubmit="handleRunUpdate(event)">
+                        <form id="edit-run-form" onsubmit="window.handleRunUpdate(event)">
                             <input type="hidden" id="edit-run-id"><input type="hidden" id="edit-category-id">
                             <label for="edit-runner">Runner:</label><input type="text" id="edit-runner" required>
                             <label for="edit-time">Time:</label><input type="text" id="edit-time" required>
@@ -613,9 +609,9 @@
                 </div>
                  <div id="login-modal" class="modal">
                     <div class="modal-content">
-                        <span class="close-btn" onclick="closeModal('login-modal')">&times;</span>
+                        <span class="close-btn" onclick="window.closeModal('login-modal')">&times;</span>
                         <h2>Moderator Login</h2>
-                        <form id="login-form" onsubmit="handleLogin(event)">
+                        <form id="login-form" onsubmit="window.handleLogin(event)">
                             <label for="email">Email:</label>
                             <input type="email" id="email" required>
                             <label for="password">Password:</label>
@@ -634,7 +630,11 @@
             window.openEditModal = openEditModal;
             window.deleteRun = deleteRun;
             window.updateRunStatus = updateRunStatus;
-            window.seedDatabase = seedDatabase; // Make seed function available in console
+            window.seedDatabase = seedDatabase;
+            window.handleLogin = handleLogin;
+            window.handleRunSubmission = handleRunSubmission;
+            window.handleRunUpdate = handleRunUpdate;
+            window.closeModal = closeModal;
             
             onAuthStateChanged(auth, user => { updateModeratorUI(user); });
             router();
