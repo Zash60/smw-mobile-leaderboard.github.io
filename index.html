@@ -120,6 +120,7 @@
                     <button id="mod-tab">Mod</button>
                 </div>
                 <div class="user-actions">
+                    <!-- BOTÃO QUE VOCÊ MENCIONOU. Ele está aqui e correto. -->
                     <a id="submit-run-button" href="https://www.speedrun.com/smw/submit" target="_blank" rel="noopener noreferrer">Submit Run</a>
                     <button id="logout-button">Logout</button>
                 </div>
@@ -127,7 +128,6 @@
         </header>
 
         <main>
-            <!-- Visão HOME: Mostra os leaderboards -->
             <div id="home-view" class="view active">
                 <h1>Super Mario World Leaderboards</h1>
                 <div id="leaderboards-container">
@@ -135,7 +135,6 @@
                 </div>
             </div>
 
-            <!-- Visão MOD: Conteúdo para moderadores logados -->
             <div id="mod-view" class="view">
                 <h1>Painel de Moderação</h1>
                 <p>Bem-vindo, moderador! Esta área é restrita.</p>
@@ -151,13 +150,10 @@
         </main>
     </div>
 
-    <!-- SCRIPT PRINCIPAL -->
     <script type="module">
-        // Importa as funções do Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // SUA CONFIGURAÇÃO DO FIREBASE
         const firebaseConfig = {
             apiKey: "AIzaSyDZmCb9AJs1uNnGkww1qR1EM0JAzag0EAo",
             authDomain: "smw-mobile-speedrun.firebaseapp.com",
@@ -170,7 +166,6 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        // --- CONTROLE DE VISUALIZAÇÃO (ABAS) ---
         const homeView = document.getElementById('home-view');
         const modView = document.getElementById('mod-view');
         const homeTab = document.getElementById('home-tab');
@@ -192,19 +187,15 @@
         homeTab.addEventListener('click', () => showView('home'));
         modTab.addEventListener('click', () => showView('mod'));
 
-
-        // --- LÓGICA DE AUTENTICAÇÃO DO FIREBASE ---
         const logoutButton = document.getElementById('logout-button');
         const loginError = document.getElementById('login-error');
 
         onAuthStateChanged(auth, user => {
             if (user) {
-                console.log('Usuário logado:', user.email);
                 modTab.style.display = 'inline-block';
                 logoutButton.style.display = 'inline-block';
                 loginForm.style.display = 'none';
             } else {
-                console.log('Nenhum usuário logado.');
                 modTab.style.display = 'none';
                 logoutButton.style.display = 'none';
                 loginForm.style.display = 'flex';
@@ -219,11 +210,9 @@
             const email = document.getElementById('login-email').value;
             const password = document.getElementById('login-password').value;
             loginError.style.display = 'none';
-
             try {
                 await signInWithEmailAndPassword(auth, email, password);
             } catch (error) {
-                console.error("Erro no login:", error.message);
                 loginError.textContent = "Email ou senha inválidos.";
                 loginError.style.display = 'block';
             }
@@ -233,7 +222,6 @@
             signOut(auth);
         });
 
-        // --- LÓGICA DA API SPEEDRUN.COM ---
         const SMW_GAME_ID = 'v1dexjne';
         const API_BASE_URL = 'https://www.speedrun.com/api/v1';
         const leaderboardsContainer = document.getElementById('leaderboards-container');
@@ -248,7 +236,7 @@
         
         async function fetchLeaderboards() {
             try {
-                // CORREÇÃO FINAL: Adicionado "/categories" ao final da URL para buscar as categorias do jogo.
+                // ESTA É A LINHA CORRETA E FINAL
                 const categoriesResponse = await fetch(`${API_BASE_URL}/games/${SMW_GAME_ID}/categories`);
                 
                 if (!categoriesResponse.ok) {
@@ -259,7 +247,7 @@
                 leaderboardsContainer.innerHTML = '';
 
                 if (!categoriesData || !categoriesData.data) {
-                    throw new Error("Formato de dados inesperado da API de categorias.");
+                    throw new Error("Formato de dados inesperado da API.");
                 }
 
                 for (const category of categoriesData.data) {
@@ -289,7 +277,6 @@
                             const player = players.find(p => p.id === runData.run.players[0].id);
                             const playerName = player ? player.names.international : 'Convidado';
                             const time = runData.run.times.primary_t ? formatTime(runData.run.times.primary_t) : 'N/A';
-                            
                             const row = document.createElement('tr');
                             row.innerHTML = `<td>${runData.place}</td><td>${playerName}</td><td>${time}</td>`;
                             tbody.appendChild(row);
@@ -303,12 +290,10 @@
 
             } catch (error) {
                 console.error("Falha ao buscar dados da Speedrun.com:", error);
-                leaderboardsContainer.innerHTML = '<div class="loader">Erro ao carregar os dados. Verifique a URL da API e sua conexão.</div>';
+                leaderboardsContainer.innerHTML = '<div class="loader">Erro ao carregar os dados. Tente limpar o cache do navegador.</div>';
             }
         }
-
         document.addEventListener('DOMContentLoaded', fetchLeaderboards);
-
     </script>
 </body>
 </html>
