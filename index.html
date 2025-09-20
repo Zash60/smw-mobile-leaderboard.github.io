@@ -258,14 +258,12 @@
                 button.addEventListener('click', () => handleMainCategoryClick(cat.id));
                 mainCategoriesContainer.appendChild(button);
             });
-            // Ativa e carrega a primeira categoria por padrão
             if (mainCategoriesContainer.firstChild) {
                 mainCategoriesContainer.firstChild.click();
             }
         }
         
         function handleMainCategoryClick(categoryId) {
-            // Atualiza visual das abas principais
             Array.from(mainCategoriesContainer.children).forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.categoryId === categoryId);
             });
@@ -286,7 +284,6 @@
                     subCategoriesContainer.appendChild(button);
                 });
                 
-                // Ativa a primeira subcategoria por padrão
                 if (subCategoriesContainer.firstChild) {
                     subCategoriesContainer.firstChild.click();
                 }
@@ -297,7 +294,6 @@
         }
 
         function handleSubCategoryClick(categoryId, valueId) {
-             // Atualiza visual das abas secundárias
             Array.from(subCategoriesContainer.children).forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.valueId === valueId);
             });
@@ -335,13 +331,15 @@
                 return;
             }
 
-            // CORREÇÃO: Verifica se 'p.names' existe. Se não, usa 'Guest'.
-            const players = new Map(data.players.data.map(p => [
+            // CORREÇÃO: Garante que data.players.data e data.platform.data existam.
+            const playersData = (data.players && data.players.data) ? data.players.data : [];
+            const players = new Map(playersData.map(p => [
                 p.id,
                 (p.names ? p.names.international : 'Guest') 
             ]));
             
-            const platforms = new Map(data.platform.data.map(p => [p.id, p.name]));
+            const platformsData = (data.platform && data.platform.data) ? data.platform.data : [];
+            const platforms = new Map(platformsData.map(p => [p.id, p.name]));
             
             let tableHTML = `<table id="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>Time</th><th>Platform</th><th>Date</th></tr></thead><tbody>`;
             
@@ -359,7 +357,7 @@
         // --- LÓGICA DO MODAL E SUBMISSÃO DE RUNS ---
         openSubmitModalBtn.addEventListener('click', () => {
             submitModal.style.display = 'block';
-            submitStatus.textContent = ''; // Limpa status anterior
+            submitStatus.textContent = '';
         });
         closeModalBtn.addEventListener('click', () => submitModal.style.display = 'none');
         window.addEventListener('click', (event) => {
@@ -380,7 +378,6 @@
             };
 
             try {
-                // Adiciona o documento à coleção 'submitted_runs' no Firestore
                 const docRef = await addDoc(collection(db, "submitted_runs"), runData);
                 console.log("Document written with ID: ", docRef.id);
                 submitStatus.textContent = 'Run enviada com sucesso!';
