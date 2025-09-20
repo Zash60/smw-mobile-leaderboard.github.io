@@ -8,10 +8,11 @@
     <!-- CSS (Estilo) -->
     <style>
         :root {
-            --bg-color: #1c1c1c;
-            --text-color: #f0f0f0;
-            --primary-color: #4a90e2;
-            --secondary-color: #2a2a2a;
+            --bg-color: #1c1c1e;
+            --secondary-color: #2c2c2e;
+            --tertiary-color: #3a3a3c;
+            --text-color: #f2f2f7;
+            --primary-color: #0a84ff;
             --border-color: #444;
         }
 
@@ -41,6 +42,7 @@
             font-size: 1.5em;
         }
 
+        /* Abas de Navegação Principal */
         nav {
             display: flex;
             justify-content: center;
@@ -49,105 +51,96 @@
         }
 
         nav button {
-            background: none;
-            border: none;
-            color: var(--text-color);
-            padding: 15px 20px;
-            cursor: pointer;
-            font-size: 1em;
+            background: none; border: none; color: var(--text-color);
+            padding: 15px 20px; cursor: pointer; font-size: 1em;
             border-bottom: 3px solid transparent;
         }
-
-        nav button.active {
-            border-bottom-color: var(--primary-color);
-            color: var(--primary-color);
-        }
+        nav button.active { border-bottom-color: var(--primary-color); color: var(--primary-color); }
         
-        main section {
-            display: none; /* Esconde todas as seções por padrão */
-        }
-        
-        main section.active {
-            display: block; /* Mostra a seção ativa */
-        }
+        main section { display: none; }
+        main section.active { display: block; }
 
-        .controls, .login-form {
-            background-color: var(--secondary-color);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
+        /* Abas de Categoria/Subcategoria */
+        .category-tabs {
             display: flex;
             flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        select, input, button {
-            font-size: 1em;
+            gap: 8px;
             padding: 10px;
-            border-radius: 5px;
-            border: 1px solid var(--border-color);
-            background-color: #333;
-            color: var(--text-color);
-        }
-        
-        .submit-run-btn {
-            background-color: #28a745;
-            color: white;
-            border: none;
-            cursor: pointer;
-            font-weight: bold;
-            margin-top: 10px;
-            width: 100%;
-        }
-
-        #leaderboard-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-
-        #leaderboard-table th, #leaderboard-table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        #leaderboard-table th {
-            background-color: var(--secondary-color);
-        }
-
-        .loader {
-            text-align: center;
-            padding: 20px;
-            font-size: 1.2em;
-        }
-        
-        .hidden {
-            display: none !important;
-        }
-        
-        #mod-content .logged-in-view {
-            padding: 20px;
             background-color: var(--secondary-color);
             border-radius: 8px;
-            text-align: center;
+            margin-bottom: 10px;
         }
-        
-        #mod-content .logged-in-view button {
-            background-color: #dc3545;
+        .category-tabs button {
+            background-color: var(--tertiary-color);
+            border: 1px solid var(--border-color);
+            color: var(--text-color);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+        }
+        .category-tabs button.active {
+            background-color: var(--primary-color);
+            color: white;
+            font-weight: bold;
+            border-color: var(--primary-color);
         }
 
-        .error-message {
-            color: #dc3545;
-            margin-top: 10px;
+        /* Leaderboard */
+        #leaderboard-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        #leaderboard-table th, #leaderboard-table td {
+            padding: 12px; text-align: left;
+            border-bottom: 1px solid var(--border-color);
         }
+        #leaderboard-table th { background-color: var(--secondary-color); }
+        .loader { text-align: center; padding: 20px; font-size: 1.2em; }
+        
+        /* Botão Submit */
+        .submit-run-btn {
+            background-color: #34c759;
+            color: white; border: none; cursor: pointer; font-weight: bold;
+            margin-top: 20px; padding: 15px; width: 100%;
+            border-radius: 8px; font-size: 1.1em;
+        }
+
+        /* Modal de Submissão */
+        .modal {
+            display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+            width: 100%; height: 100%; overflow: auto;
+            background-color: rgba(0,0,0,0.7);
+        }
+        .modal-content {
+            background-color: var(--secondary-color);
+            margin: 15% auto; padding: 20px; border: 1px solid var(--border-color);
+            width: 90%; max-width: 500px; border-radius: 12px;
+            display: flex; flex-direction: column; gap: 15px;
+        }
+        .modal-content h2 { margin-top: 0; }
+        .modal-content input, .modal-content select {
+            width: calc(100% - 24px); padding: 12px; font-size: 1em;
+            background-color: var(--tertiary-color); color: var(--text-color);
+            border: 1px solid var(--border-color); border-radius: 6px;
+        }
+        .modal-buttons { display: flex; gap: 10px; justify-content: flex-end; }
+        .modal-buttons button {
+            padding: 10px 20px; border-radius: 6px; border: none;
+            font-weight: bold; cursor: pointer;
+        }
+        .modal-buttons .submit-btn { background-color: var(--primary-color); color: white; }
+        .modal-buttons .cancel-btn { background-color: #555; color: white; }
+
+        .hidden { display: none !important; }
+
+        /* Estilos da aba Mod */
+        #mod-content .login-form { display: flex; flex-direction: column; gap: 10px; }
+        #mod-content .logged-in-view { text-align: center; }
+        #mod-content .logged-in-view button { background-color: #ff3b30; }
+        .error-message { color: #ff3b30; margin-top: 10px; }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>SMW Speedrun Mobile</h1>
-    </header>
+    <header><h1>SMW Speedrun Mobile</h1></header>
 
     <nav>
         <button id="home-tab" class="active">Home</button>
@@ -155,25 +148,16 @@
     </nav>
 
     <main class="container">
-        <!-- Seção Home (Padrão) -->
+        <!-- Seção Home -->
         <section id="home-content" class="active">
-            <div class="controls">
-                <select id="category-select">
-                    <option value="">Carregando categorias...</option>
-                </select>
-                <select id="subcategory-select" class="hidden"></select>
-            </div>
-            <div id="leaderboard-container">
-                <div class="loader">Selecione uma categoria para ver o leaderboard.</div>
-            </div>
-             <button class="submit-run-btn" onclick="window.open('https://www.speedrun.com/smw/submit', '_blank')">
-                SUBMIT RUN
-            </button>
+            <div id="main-categories" class="category-tabs"></div>
+            <div id="sub-categories" class="category-tabs hidden"></div>
+            <div id="leaderboard-container"><div class="loader">Carregando categorias...</div></div>
+            <button id="open-submit-modal-btn" class="submit-run-btn">SUBMIT RUN</button>
         </section>
 
-        <!-- Seção Mod (Login) -->
+        <!-- Seção Mod -->
         <section id="mod-content">
-            <!-- Formulário de Login (visível para deslogados) -->
             <div id="login-view">
                 <h2>Acesso Moderador</h2>
                 <form id="login-form" class="login-form">
@@ -183,25 +167,40 @@
                     <p id="login-error" class="error-message hidden"></p>
                 </form>
             </div>
-            <!-- Painel do Mod (visível para logados) -->
             <div id="mod-panel" class="logged-in-view hidden">
                 <p id="user-welcome">Bem-vindo, moderador!</p>
-                <p>Esta área é para funcionalidades de moderação.</p>
                 <button id="logout-btn">Logout</button>
             </div>
         </section>
     </main>
 
-    <!-- JavaScript (Lógica) -->
+    <!-- Modal para Submissão de Run -->
+    <div id="submit-modal" class="modal">
+        <div class="modal-content">
+            <h2>Submit Your Run</h2>
+            <form id="submit-run-form">
+                <input type="text" id="player-name" placeholder="Player Name" required>
+                <input type="text" id="run-time" placeholder="Time (e.g., 00:49.550)" required>
+                <input type="text" id="platform" placeholder="Platform (e.g., SNES, Switch)" required>
+                <input type="date" id="run-date" required>
+                <input type="url" id="video-link" placeholder="Link do Vídeo (Opcional)">
+                <div class="modal-buttons">
+                    <button type="button" class="cancel-btn" id="close-modal-btn">Cancelar</button>
+                    <button type="submit" class="submit-btn">Enviar</button>
+                </div>
+                 <p id="submit-status" style="text-align: center; margin-top: 10px;"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
     <script type="module">
         // Importar funções do Firebase SDK
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ***************************************************************
-        // ** COLE AQUI A CONFIGURAÇÃO DO SEU FIREBASE                   **
-        // ** NUNCA COMPARTILHE ISSO EM UM REPOSITÓRIO PÚBLICO           **
-        // ***************************************************************
+        // ** COLE AQUI A CONFIGURAÇÃO DO SEU FIREBASE **
         const firebaseConfig = {
             apiKey: "SUA_API_KEY",
             authDomain: "SEU_AUTH_DOMAIN",
@@ -214,126 +213,101 @@
         // Inicializar Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        // CONSTANTES DA API SPEEDRUN.COM
+        // CONSTANTES DA API
         const API_BASE_URL = "https://www.speedrun.com/api/v1";
-        const GAME_ID = "smw"; // ID do Super Mario World
+        const GAME_ID = "smw";
 
         // ELEMENTOS DO DOM
-        const homeTab = document.getElementById('home-tab');
-        const modTab = document.getElementById('mod-tab');
-        const homeContent = document.getElementById('home-content');
-        const modContent = document.getElementById('mod-content');
-        
-        const categorySelect = document.getElementById('category-select');
-        const subcategorySelect = document.getElementById('subcategory-select');
+        const mainCategoriesContainer = document.getElementById('main-categories');
+        const subCategoriesContainer = document.getElementById('sub-categories');
         const leaderboardContainer = document.getElementById('leaderboard-container');
         
-        const loginView = document.getElementById('login-view');
-        const loginForm = document.getElementById('login-form');
-        const loginEmail = document.getElementById('login-email');
-        const loginPassword = document.getElementById('login-password');
-        const loginError = document.getElementById('login-error');
+        // Modal
+        const submitModal = document.getElementById('submit-modal');
+        const openSubmitModalBtn = document.getElementById('open-submit-modal-btn');
+        const closeModalBtn = document.getElementById('close-modal-btn');
+        const submitRunForm = document.getElementById('submit-run-form');
+        const submitStatus = document.getElementById('submit-status');
+
+        let categoriesData = [];
+
+        // --- LÓGICA DE CATEGORIAS E LEADERBOARD ---
         
-        const modPanel = document.getElementById('mod-panel');
-        const userWelcome = document.getElementById('user-welcome');
-        const logoutBtn = document.getElementById('logout-btn');
-
-        let categoriesData = []; // Para armazenar dados das categorias e evitar múltiplas chamadas
-
-        // --- LÓGICA DE NAVEGAÇÃO POR ABAS ---
-        function switchTab(activeTab) {
-            homeTab.classList.remove('active');
-            modTab.classList.remove('active');
-            homeContent.classList.remove('active');
-            modContent.classList.remove('active');
-
-            if (activeTab === 'home') {
-                homeTab.classList.add('active');
-                homeContent.classList.add('active');
-            } else {
-                modTab.classList.add('active');
-                modContent.classList.add('active');
-            }
-        }
-        homeTab.addEventListener('click', () => switchTab('home'));
-        modTab.addEventListener('click', () => switchTab('mod'));
-
-        // --- LÓGICA DA API SPEEDRUN.COM ---
-        
-        // Função para buscar as categorias do jogo
         async function fetchCategories() {
             try {
-                const response = await fetch(`${API_BASE_URL}/games/${GAME_ID}/categories`);
+                const response = await fetch(`${API_BASE_URL}/games/${GAME_ID}/categories?embed=variables`);
                 const data = await response.json();
-                categoriesData = data.data; // Armazena os dados
-                populateCategorySelect(categoriesData);
+                categoriesData = data.data.filter(cat => cat.type === 'per-level' === false);
+                populateCategoryTabs();
             } catch (error) {
                 console.error("Erro ao buscar categorias:", error);
-                categorySelect.innerHTML = `<option value="">Erro ao carregar</option>`;
+                leaderboardContainer.innerHTML = `<div class="loader">Erro ao carregar categorias.</div>`;
             }
         }
 
-        // Preenche o <select> de categorias
-        function populateCategorySelect(categories) {
-            categorySelect.innerHTML = `<option value="">Selecione uma Categoria</option>`;
-            categories.forEach(cat => {
-                const option = document.createElement('option');
-                option.value = cat.id;
-                option.textContent = cat.name;
-                categorySelect.appendChild(option);
+        function populateCategoryTabs() {
+            mainCategoriesContainer.innerHTML = '';
+            categoriesData.forEach(cat => {
+                const button = document.createElement('button');
+                button.textContent = cat.name;
+                button.dataset.categoryId = cat.id;
+                button.addEventListener('click', () => handleMainCategoryClick(cat.id));
+                mainCategoriesContainer.appendChild(button);
             });
+            // Ativa e carrega a primeira categoria por padrão
+            if (mainCategoriesContainer.firstChild) {
+                mainCategoriesContainer.firstChild.click();
+            }
         }
-
-        // Preenche o <select> de subcategorias quando uma categoria é selecionada
-        categorySelect.addEventListener('change', () => {
-            const selectedCategoryId = categorySelect.value;
-            subcategorySelect.innerHTML = '';
-            subcategorySelect.classList.add('hidden');
-            leaderboardContainer.innerHTML = '<div class="loader">Selecione uma categoria para ver o leaderboard.</div>';
-
-            if (!selectedCategoryId) return;
-
-            const category = categoriesData.find(cat => cat.id === selectedCategoryId);
-            const variables = category.variables.data;
+        
+        function handleMainCategoryClick(categoryId) {
+            // Atualiza visual das abas principais
+            Array.from(mainCategoriesContainer.children).forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.categoryId === categoryId);
+            });
             
-            // Verifica se existem subcategorias (variáveis)
-            if (variables.length > 0 && variables[0]['is-subcategory']) {
-                const subcategoryVar = variables[0];
-                subcategorySelect.dataset.variableId = subcategoryVar.id;
-                
+            const category = categoriesData.find(cat => cat.id === categoryId);
+            const subcategoryVar = category.variables.data.find(v => v['is-subcategory']);
+
+            subCategoriesContainer.innerHTML = '';
+            if (subcategoryVar) {
+                subCategoriesContainer.classList.remove('hidden');
+                subCategoriesContainer.dataset.variableId = subcategoryVar.id;
+
                 Object.entries(subcategoryVar.values.values).forEach(([valueId, valueData]) => {
-                    const option = document.createElement('option');
-                    option.value = valueId;
-                    option.textContent = valueData.label;
-                    subcategorySelect.appendChild(option);
+                    const button = document.createElement('button');
+                    button.textContent = valueData.label;
+                    button.dataset.valueId = valueId;
+                    button.addEventListener('click', () => handleSubCategoryClick(categoryId, valueId));
+                    subCategoriesContainer.appendChild(button);
                 });
                 
-                subcategorySelect.classList.remove('hidden');
-                // Dispara o evento change para carregar o primeiro leaderboard da subcategoria
-                subcategorySelect.dispatchEvent(new Event('change'));
+                // Ativa a primeira subcategoria por padrão
+                if (subCategoriesContainer.firstChild) {
+                    subCategoriesContainer.firstChild.click();
+                }
             } else {
-                // Se não houver subcategoria, carrega o leaderboard principal
-                fetchLeaderboard(selectedCategoryId);
+                subCategoriesContainer.classList.add('hidden');
+                fetchLeaderboard(categoryId);
             }
-        });
+        }
 
-        // Evento para carregar o leaderboard quando a subcategoria muda
-        subcategorySelect.addEventListener('change', () => {
-            const categoryId = categorySelect.value;
-            const variableId = subcategorySelect.dataset.variableId;
-            const valueId = subcategorySelect.value;
+        function handleSubCategoryClick(categoryId, valueId) {
+             // Atualiza visual das abas secundárias
+            Array.from(subCategoriesContainer.children).forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.valueId === valueId);
+            });
+
+            const variableId = subCategoriesContainer.dataset.variableId;
             fetchLeaderboard(categoryId, variableId, valueId);
-        });
+        }
 
-        // Função para buscar o leaderboard
         async function fetchLeaderboard(categoryId, variableId = null, valueId = null) {
             leaderboardContainer.innerHTML = '<div class="loader">Carregando leaderboard...</div>';
-            
-            let url = `${API_BASE_URL}/leaderboards/${GAME_ID}/category/${categoryId}?embed=players,platform`;
-            if (variableId && valueId) {
-                url += `&var-${variableId}=${valueId}`;
-            }
+            let url = `${API_BASE_URL}/leaderboards/${GAME_ID}/category/${categoryId}?embed=players,platform&top=50`;
+            if (variableId && valueId) url += `&var-${variableId}=${valueId}`;
 
             try {
                 const response = await fetch(url);
@@ -341,113 +315,115 @@
                 renderLeaderboard(data.data);
             } catch (error) {
                 console.error("Erro ao buscar leaderboard:", error);
-                leaderboardContainer.innerHTML = '<div class="loader">Falha ao carregar o leaderboard.</div>';
+                leaderboardContainer.innerHTML = '<div class="loader">Falha ao carregar.</div>';
             }
         }
 
-        // Formata o tempo de segundos para HH:MM:SS.ms
         function formatTime(seconds) {
-            const h = Math.floor(seconds / 3600);
-            const m = Math.floor((seconds % 3600) / 60);
-            const s = Math.floor(seconds % 60);
-            const ms = Math.round((seconds - Math.floor(seconds)) * 1000);
-
-            let timeString = '';
-            if (h > 0) timeString += `${h.toString().padStart(2, '0')}:`;
-            timeString += `${m.toString().padStart(2, '0')}:`;
-            timeString += `${s.toString().padStart(2, '0')}`;
-            if (ms > 0) timeString += `.${ms.toString().padStart(3, '0')}`;
-            
-            return timeString;
+            if (seconds >= 3600) return new Date(seconds * 1000).toISOString().substr(11, 12);
+            return new Date(seconds * 1000).toISOString().substr(14, 9);
         }
 
-        // Renderiza a tabela do leaderboard
-        function renderLeaderboard(leaderboardData) {
-            if (!leaderboardData || leaderboardData.runs.length === 0) {
-                leaderboardContainer.innerHTML = '<div class="loader">Nenhuma run encontrada para esta categoria.</div>';
+        function renderLeaderboard(data) {
+            // A lógica de renderLeaderboard e formatTime do código anterior pode ser usada aqui
+             if (!data || data.runs.length === 0) {
+                leaderboardContainer.innerHTML = '<div class="loader">Nenhuma run encontrada.</div>';
                 return;
             }
-
-            const platformData = leaderboardData.platform.data;
-            const playersData = leaderboardData.players.data;
-
-            let tableHTML = `
-                <table id="leaderboard-table">
-                    <thead>
-                        <tr>
-                            <th>#</th>
-                            <th>Player</th>
-                            <th>Time</th>
-                            <th>Platform</th>
-                            <th>Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-            `;
-
-            leaderboardData.runs.forEach(runData => {
-                const run = runData.run;
-                const player = playersData.find(p => p.id === run.players[0].id);
-                const platform = platformData.find(p => p.id === run.system.platform);
-                
-                tableHTML += `
-                    <tr>
-                        <td>${runData.place}</td>
-                        <td>${player ? player.names.international : 'Guest'}</td>
-                        <td>${formatTime(run.times.primary_t)}</td>
-                        <td>${platform ? platform.name : 'N/A'}</td>
-                        <td>${run.date}</td>
-                    </tr>
-                `;
+            const players = new Map(data.players.data.map(p => [p.id, p.names.international]));
+            const platforms = new Map(data.platform.data.map(p => [p.id, p.name]));
+            
+            let tableHTML = `<table id="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>Time</th><th>Platform</th><th>Date</th></tr></thead><tbody>`;
+            data.runs.forEach(({place, run}) => {
+                const player = players.get(run.players[0].id) || 'Guest';
+                const platform = platforms.get(run.system.platform) || 'N/A';
+                tableHTML += `<tr><td>${place}</td><td>${player}</td><td>${formatTime(run.times.primary_t)}</td><td>${platform}</td><td>${run.date || 'N/A'}</td></tr>`;
             });
-
             tableHTML += `</tbody></table>`;
             leaderboardContainer.innerHTML = tableHTML;
         }
 
-        // --- LÓGICA DE AUTENTICAÇÃO FIREBASE ---
+        // --- LÓGICA DO MODAL E SUBMISSÃO DE RUNS ---
+        openSubmitModalBtn.addEventListener('click', () => {
+            submitModal.style.display = 'block';
+            submitStatus.textContent = ''; // Limpa status anterior
+        });
+        closeModalBtn.addEventListener('click', () => submitModal.style.display = 'none');
+        window.addEventListener('click', (event) => {
+            if (event.target == submitModal) submitModal.style.display = 'none';
+        });
+
+        submitRunForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            submitStatus.textContent = 'Enviando...';
+
+            const runData = {
+                player: document.getElementById('player-name').value,
+                time: document.getElementById('run-time').value,
+                platform: document.getElementById('platform').value,
+                date: document.getElementById('run-date').value,
+                video: document.getElementById('video-link').value,
+                submittedAt: new Date()
+            };
+
+            try {
+                // Adiciona o documento à coleção 'submitted_runs' no Firestore
+                const docRef = await addDoc(collection(db, "submitted_runs"), runData);
+                console.log("Document written with ID: ", docRef.id);
+                submitStatus.textContent = 'Run enviada com sucesso!';
+                submitRunForm.reset();
+                setTimeout(() => {
+                    submitModal.style.display = 'none';
+                }, 2000);
+            } catch (error) {
+                console.error("Error adding document: ", error);
+                submitStatus.textContent = 'Erro ao enviar. Tente novamente.';
+            }
+        });
+
+        // --- LÓGICA DE AUTENTICAÇÃO E NAVEGAÇÃO POR ABAS (semelhante ao anterior) ---
+        const homeTab = document.getElementById('home-tab'), modTab = document.getElementById('mod-tab');
+        const homeContent = document.getElementById('home-content'), modContent = document.getElementById('mod-content');
         
-        // Listener que observa mudanças no estado de login
-        onAuthStateChanged(auth, (user) => {
+        function switchTab(activeTab) {
+            homeTab.classList.toggle('active', activeTab === 'home');
+            modTab.classList.toggle('active', activeTab === 'mod');
+            homeContent.classList.toggle('active', activeTab === 'home');
+            modContent.classList.toggle('active', activeTab === 'mod');
+        }
+        homeTab.addEventListener('click', () => switchTab('home'));
+        modTab.addEventListener('click', () => switchTab('mod'));
+        
+        // Código de login, logout e onAuthStateChanged (idêntico ao anterior)
+        const loginView = document.getElementById('login-view'), loginForm = document.getElementById('login-form');
+        const loginError = document.getElementById('login-error'), modPanel = document.getElementById('mod-panel');
+        const userWelcome = document.getElementById('user-welcome'), logoutBtn = document.getElementById('logout-btn');
+
+        onAuthStateChanged(auth, user => {
             if (user) {
-                // Usuário está logado
                 loginView.classList.add('hidden');
                 modPanel.classList.remove('hidden');
                 userWelcome.textContent = `Bem-vindo, ${user.email}`;
             } else {
-                // Usuário está deslogado
                 loginView.classList.remove('hidden');
                 modPanel.classList.add('hidden');
             }
         });
 
-        // Evento de submit do formulário de login
         loginForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const email = loginEmail.value;
-            const password = loginPassword.value;
-            
             try {
-                await signInWithEmailAndPassword(auth, email, password);
+                await signInWithEmailAndPassword(auth, loginForm['login-email'].value, loginForm['login-password'].value);
                 loginError.classList.add('hidden');
-                loginForm.reset();
             } catch (error) {
-                console.error("Erro de login:", error.message);
                 loginError.textContent = "Email ou senha inválidos.";
                 loginError.classList.remove('hidden');
             }
         });
         
-        // Evento do botão de logout
-        logoutBtn.addEventListener('click', async () => {
-            try {
-                await signOut(auth);
-            } catch (error) {
-                console.error("Erro no logout:", error);
-            }
-        });
+        logoutBtn.addEventListener('click', () => signOut(auth));
 
-        // --- INICIALIZAÇÃO DA PÁGINA ---
+        // INICIALIZAÇÃO
         fetchCategories();
     </script>
 </body>
