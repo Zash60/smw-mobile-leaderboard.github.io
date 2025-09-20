@@ -99,7 +99,8 @@
         .submit-run-btn {
             background-color: #34c759;
             color: white; border: none; cursor: pointer; font-weight: bold;
-            margin-top: 20px; padding: 15px; width: 100%;
+            margin-bottom: 20px;
+            padding: 15px; width: 100%;
             border-radius: 8px; font-size: 1.1em;
         }
 
@@ -116,7 +117,7 @@
             display: flex; flex-direction: column; gap: 15px;
         }
         .modal-content h2 { margin-top: 0; }
-        .modal-content input, .modal-content select {
+        .modal-content input {
             width: calc(100% - 24px); padding: 12px; font-size: 1em;
             background-color: var(--tertiary-color); color: var(--text-color);
             border: 1px solid var(--border-color); border-radius: 6px;
@@ -152,8 +153,10 @@
         <section id="home-content" class="active">
             <div id="main-categories" class="category-tabs"></div>
             <div id="sub-categories" class="category-tabs hidden"></div>
-            <div id="leaderboard-container"><div class="loader">Carregando categorias...</div></div>
+            
             <button id="open-submit-modal-btn" class="submit-run-btn">SUBMIT RUN</button>
+
+            <div id="leaderboard-container"><div class="loader">Carregando categorias...</div></div>
         </section>
 
         <!-- Seção Mod -->
@@ -179,9 +182,9 @@
         <div class="modal-content">
             <h2>Submit Your Run</h2>
             <form id="submit-run-form">
+                <!-- CAMPO PLAYER NAME MANTIDO, CONFORME SOLICITADO -->
                 <input type="text" id="player-name" placeholder="Player Name" required>
                 <input type="text" id="run-time" placeholder="Time (e.g., 00:49.550)" required>
-                <input type="text" id="platform" placeholder="Platform (e.g., SNES, Switch)" required>
                 <input type="date" id="run-date" required>
                 <input type="url" id="video-link" placeholder="Link do Vídeo (Opcional)">
                 <div class="modal-buttons">
@@ -221,18 +224,15 @@
         const API_BASE_URL = "https://www.speedrun.com/api/v1";
         const GAME_ID = "smw";
 
-        // ELEMENTOS DO DOM
+        // ELEMENTOS DO DOM (código omitido para brevidade, é o mesmo)
         const mainCategoriesContainer = document.getElementById('main-categories');
         const subCategoriesContainer = document.getElementById('sub-categories');
         const leaderboardContainer = document.getElementById('leaderboard-container');
-        
-        // Modal
         const submitModal = document.getElementById('submit-modal');
         const openSubmitModalBtn = document.getElementById('open-submit-modal-btn');
         const closeModalBtn = document.getElementById('close-modal-btn');
         const submitRunForm = document.getElementById('submit-run-form');
         const submitStatus = document.getElementById('submit-status');
-
         let categoriesData = [];
 
         // --- LÓGICA DE CATEGORIAS E LEADERBOARD ---
@@ -275,7 +275,6 @@
             if (subcategoryVar) {
                 subCategoriesContainer.classList.remove('hidden');
                 subCategoriesContainer.dataset.variableId = subcategoryVar.id;
-
                 Object.entries(subcategoryVar.values.values).forEach(([valueId, valueData]) => {
                     const button = document.createElement('button');
                     button.textContent = valueData.label;
@@ -283,7 +282,6 @@
                     button.addEventListener('click', () => handleSubCategoryClick(categoryId, valueId));
                     subCategoriesContainer.appendChild(button);
                 });
-                
                 if (subCategoriesContainer.firstChild) {
                     subCategoriesContainer.firstChild.click();
                 }
@@ -297,14 +295,13 @@
             Array.from(subCategoriesContainer.children).forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.valueId === valueId);
             });
-
             const variableId = subCategoriesContainer.dataset.variableId;
             fetchLeaderboard(categoryId, variableId, valueId);
         }
 
         async function fetchLeaderboard(categoryId, variableId = null, valueId = null) {
             leaderboardContainer.innerHTML = '<div class="loader">Carregando leaderboard...</div>';
-            let url = `${API_BASE_URL}/leaderboards/${GAME_ID}/category/${categoryId}?embed=players,platform&top=50`;
+            let url = `${API_BASE_URL}/leaderboards/${GAME_ID}/category/${categoryId}?top=50`; // Não precisa mais de embeds de player/platform
             if (variableId && valueId) url += `&var-${variableId}=${valueId}`;
 
             try {
@@ -323,31 +320,20 @@
         }
 
         // ================================================================= //
-        // ======================= FUNÇÃO CORRIGIDA ======================== //
+        // =================== FUNÇÃO RENDER LEADERBOARD =================== //
+        // ====================== ATUALIZADA E SIMPLIFICADA ================ //
         // ================================================================= //
         function renderLeaderboard(data) {
             if (!data || !data.runs || data.runs.length === 0) {
                 leaderboardContainer.innerHTML = '<div class="loader">Nenhuma run encontrada.</div>';
                 return;
             }
-
-            // CORREÇÃO: Garante que data.players.data e data.platform.data existam.
-            const playersData = (data.players && data.players.data) ? data.players.data : [];
-            const players = new Map(playersData.map(p => [
-                p.id,
-                (p.names ? p.names.international : 'Guest') 
-            ]));
             
-            const platformsData = (data.platform && data.platform.data) ? data.platform.data : [];
-            const platforms = new Map(platformsData.map(p => [p.id, p.name]));
-            
-            let tableHTML = `<table id="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>Time</th><th>Platform</th><th>Date</th></tr></thead><tbody>`;
+            // Tabela agora só tem as colunas #, Time e Data
+            let tableHTML = `<table id="leaderboard-table"><thead><tr><th>#</th><th>Time</th><th>Date</th></tr></thead><tbody>`;
             
             data.runs.forEach(({place, run}) => {
-                const player = players.get(run.players[0].id) || 'Guest';
-                const platform = platforms.get(run.system.platform) || 'N/A';
-                
-                tableHTML += `<tr><td>${place}</td><td>${player}</td><td>${formatTime(run.times.primary_t)}</td><td>${platform}</td><td>${run.date || 'N/A'}</td></tr>`;
+                tableHTML += `<tr><td>${place}</td><td>${formatTime(run.times.primary_t)}</td><td>${run.date || 'N/A'}</td></tr>`;
             });
 
             tableHTML += `</tbody></table>`;
@@ -368,10 +354,10 @@
             e.preventDefault();
             submitStatus.textContent = 'Enviando...';
 
+            // ATUALIZADO: Objeto runData agora inclui o 'player' do formulário
             const runData = {
                 player: document.getElementById('player-name').value,
                 time: document.getElementById('run-time').value,
-                platform: document.getElementById('platform').value,
                 date: document.getElementById('run-date').value,
                 video: document.getElementById('video-link').value,
                 submittedAt: new Date()
