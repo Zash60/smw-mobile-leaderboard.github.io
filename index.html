@@ -200,7 +200,9 @@
         import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
         import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-        // ** COLE AQUI A CONFIGURAÇÃO DO SEU FIREBASE **
+        // ***************************************************************
+        // ** COLE AQUI A CONFIGURAÇÃO DO SEU FIREBASE                   **
+        // ***************************************************************
         const firebaseConfig = {
             apiKey: "SUA_API_KEY",
             authDomain: "SEU_AUTH_DOMAIN",
@@ -324,21 +326,32 @@
             return new Date(seconds * 1000).toISOString().substr(14, 9);
         }
 
+        // ================================================================= //
+        // ======================= FUNÇÃO CORRIGIDA ======================== //
+        // ================================================================= //
         function renderLeaderboard(data) {
-            // A lógica de renderLeaderboard e formatTime do código anterior pode ser usada aqui
-             if (!data || data.runs.length === 0) {
+            if (!data || !data.runs || data.runs.length === 0) {
                 leaderboardContainer.innerHTML = '<div class="loader">Nenhuma run encontrada.</div>';
                 return;
             }
-            const players = new Map(data.players.data.map(p => [p.id, p.names.international]));
+
+            // CORREÇÃO: Verifica se 'p.names' existe. Se não, usa 'Guest'.
+            const players = new Map(data.players.data.map(p => [
+                p.id,
+                (p.names ? p.names.international : 'Guest') 
+            ]));
+            
             const platforms = new Map(data.platform.data.map(p => [p.id, p.name]));
             
             let tableHTML = `<table id="leaderboard-table"><thead><tr><th>#</th><th>Player</th><th>Time</th><th>Platform</th><th>Date</th></tr></thead><tbody>`;
+            
             data.runs.forEach(({place, run}) => {
                 const player = players.get(run.players[0].id) || 'Guest';
                 const platform = platforms.get(run.system.platform) || 'N/A';
+                
                 tableHTML += `<tr><td>${place}</td><td>${player}</td><td>${formatTime(run.times.primary_t)}</td><td>${platform}</td><td>${run.date || 'N/A'}</td></tr>`;
             });
+
             tableHTML += `</tbody></table>`;
             leaderboardContainer.innerHTML = tableHTML;
         }
@@ -381,7 +394,7 @@
             }
         });
 
-        // --- LÓGICA DE AUTENTICAÇÃO E NAVEGAÇÃO POR ABAS (semelhante ao anterior) ---
+        // --- LÓGICA DE AUTENTICAÇÃO E NAVEGAÇÃO POR ABAS ---
         const homeTab = document.getElementById('home-tab'), modTab = document.getElementById('mod-tab');
         const homeContent = document.getElementById('home-content'), modContent = document.getElementById('mod-content');
         
@@ -394,7 +407,6 @@
         homeTab.addEventListener('click', () => switchTab('home'));
         modTab.addEventListener('click', () => switchTab('mod'));
         
-        // Código de login, logout e onAuthStateChanged (idêntico ao anterior)
         const loginView = document.getElementById('login-view'), loginForm = document.getElementById('login-form');
         const loginError = document.getElementById('login-error'), modPanel = document.getElementById('mod-panel');
         const userWelcome = document.getElementById('user-welcome'), logoutBtn = document.getElementById('logout-btn');
