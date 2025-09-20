@@ -235,7 +235,6 @@
 
         // --- LÓGICA DA API SPEEDRUN.COM ---
         const SMW_GAME_ID = 'v1dexjne';
-        // CORREÇÃO: A URL base da API precisa da versão /v1/ para funcionar
         const API_BASE_URL = 'https://www.speedrun.com/api/v1';
         const leaderboardsContainer = document.getElementById('leaderboards-container');
 
@@ -244,12 +243,12 @@
             const date = new Date(0);
             date.setSeconds(seconds);
             const timeString = date.toISOString().substr(11, 12);
-            // Remove a parte de horas se for 00:
             return timeString.startsWith('00:') ? timeString.substr(3) : timeString;
         }
         
         async function fetchLeaderboards() {
             try {
+                // CORREÇÃO FINAL: Adicionado "/categories" ao final da URL para buscar as categorias do jogo.
                 const categoriesResponse = await fetch(`${API_BASE_URL}/games/${SMW_GAME_ID}/categories`);
                 
                 if (!categoriesResponse.ok) {
@@ -271,7 +270,7 @@
                     categoryDiv.innerHTML = `<div class="category-title">${category.name}</div>`;
                     
                     const leaderboardResponse = await fetch(`${API_BASE_URL}/leaderboards/${SMW_GAME_ID}/category/${category.id}?top=5&embed=players`);
-                    if (!leaderboardResponse.ok) continue; // Pula esta categoria se houver erro nela
+                    if (!leaderboardResponse.ok) continue;
                     
                     const leaderboardData = await leaderboardResponse.json();
                     
@@ -308,7 +307,6 @@
             }
         }
 
-        // Inicia o processo de busca de dados quando a página é carregada
         document.addEventListener('DOMContentLoaded', fetchLeaderboards);
 
     </script>
