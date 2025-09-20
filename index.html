@@ -4,9 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMW Speedrun Mobile</title>
-    <!-- Para corrigir o erro 404 do favicon, você pode adicionar um ícone aqui. É opcional. -->
-    <!-- <link rel="icon" href="favicon.ico" type="image/x-icon"> -->
-
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -161,9 +158,6 @@
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
         // SUA CONFIGURAÇÃO DO FIREBASE
-        // AVISO DE SEGURANÇA: Estas chaves são públicas e qualquer um pode ver.
-        // Em um projeto de produção real, você deve proteger seu projeto com
-        // App Check e Regras de Segurança do Firestore/Storage.
         const firebaseConfig = {
             apiKey: "AIzaSyDZmCb9AJs1uNnGkww1qR1EM0JAzag0EAo",
             authDomain: "smw-mobile-speedrun.firebaseapp.com",
@@ -241,7 +235,7 @@
 
         // --- LÓGICA DA API SPEEDRUN.COM ---
         const SMW_GAME_ID = 'v1dexjne';
-        // CORREÇÃO: A URL base da API precisa da versão /v1/
+        // CORREÇÃO: A URL base da API precisa da versão /v1/ para funcionar
         const API_BASE_URL = 'https://www.speedrun.com/api/v1';
         const leaderboardsContainer = document.getElementById('leaderboards-container');
 
@@ -250,6 +244,7 @@
             const date = new Date(0);
             date.setSeconds(seconds);
             const timeString = date.toISOString().substr(11, 12);
+            // Remove a parte de horas se for 00:
             return timeString.startsWith('00:') ? timeString.substr(3) : timeString;
         }
         
@@ -257,9 +252,8 @@
             try {
                 const categoriesResponse = await fetch(`${API_BASE_URL}/games/${SMW_GAME_ID}/categories`);
                 
-                // BOA PRÁTICA: Verificar se a resposta da API foi bem-sucedida (status 200-299)
                 if (!categoriesResponse.ok) {
-                    throw new Error(`Erro na API: ${categoriesResponse.status} ${categoriesResponse.statusText}`);
+                    throw new Error(`Erro na API: ${categoriesResponse.status}`);
                 }
                 
                 const categoriesData = await categoriesResponse.json();
@@ -277,7 +271,7 @@
                     categoryDiv.innerHTML = `<div class="category-title">${category.name}</div>`;
                     
                     const leaderboardResponse = await fetch(`${API_BASE_URL}/leaderboards/${SMW_GAME_ID}/category/${category.id}?top=5&embed=players`);
-                    if (!leaderboardResponse.ok) continue; // Pula esta categoria se houver erro
+                    if (!leaderboardResponse.ok) continue; // Pula esta categoria se houver erro nela
                     
                     const leaderboardData = await leaderboardResponse.json();
                     
@@ -310,10 +304,11 @@
 
             } catch (error) {
                 console.error("Falha ao buscar dados da Speedrun.com:", error);
-                leaderboardsContainer.innerHTML = '<div class="loader">Erro ao carregar os dados. Verifique o console para mais detalhes.</div>';
+                leaderboardsContainer.innerHTML = '<div class="loader">Erro ao carregar os dados. Verifique a URL da API e sua conexão.</div>';
             }
         }
 
+        // Inicia o processo de busca de dados quando a página é carregada
         document.addEventListener('DOMContentLoaded', fetchLeaderboards);
 
     </script>
