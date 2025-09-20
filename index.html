@@ -4,7 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMW Speedrun Mobile</title>
-    <!-- Um CSS simples para deixar a aparência agradável sem bibliotecas externas -->
+    <!-- Para corrigir o erro 404 do favicon, você pode adicionar um ícone aqui. É opcional. -->
+    <!-- <link rel="icon" href="favicon.ico" type="image/x-icon"> -->
+
     <style>
         :root {
             --bg-color: #1a1a1a;
@@ -108,8 +110,6 @@
             font-size: 1.2em;
         }
         #login-error { color: #ff6b6b; font-size: 1em; display: none; }
-
-        /* Esconde elementos que não devem ser vistos por padrão */
         #mod-tab, #logout-button { display: none; }
     </style>
 </head>
@@ -142,9 +142,7 @@
             <div id="mod-view" class="view">
                 <h1>Painel de Moderação</h1>
                 <p>Bem-vindo, moderador! Esta área é restrita.</p>
-                <p>Aqui você poderia ter ferramentas para aprovar/rejeitar runs se tivéssemos um banco de dados para isso.</p>
                 
-                <!-- Formulário de Login é mostrado aqui se o usuário não estiver logado -->
                 <form id="login-form">
                     <h2>Login de Moderador</h2>
                     <input type="email" id="login-email" placeholder="Email" required>
@@ -162,9 +160,10 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        // SUA CONFIGURAÇÃO DO FIREBASE (substitua se necessário)
-        // AVISO: NUNCA exponha chaves de produção assim. Para um projeto real, use variáveis de ambiente.
-        // Para este tutorial, estamos usando as que você forneceu.
+        // SUA CONFIGURAÇÃO DO FIREBASE
+        // AVISO DE SEGURANÇA: Estas chaves são públicas e qualquer um pode ver.
+        // Em um projeto de produção real, você deve proteger seu projeto com
+        // App Check e Regras de Segurança do Firestore/Storage.
         const firebaseConfig = {
             apiKey: "AIzaSyDZmCb9AJs1uNnGkww1qR1EM0JAzag0EAo",
             authDomain: "smw-mobile-speedrun.firebaseapp.com",
@@ -174,7 +173,6 @@
             appId: "1:463967608988:web:46c33614c12ad38895cd59"
         };
 
-        // Inicializa o Firebase
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
@@ -207,18 +205,18 @@
 
         onAuthStateChanged(auth, user => {
             if (user) {
-                // Usuário está logado
                 console.log('Usuário logado:', user.email);
                 modTab.style.display = 'inline-block';
                 logoutButton.style.display = 'inline-block';
-                loginForm.style.display = 'none'; // Esconde o formulário de login
+                loginForm.style.display = 'none';
             } else {
-                // Usuário está deslogado
                 console.log('Nenhum usuário logado.');
                 modTab.style.display = 'none';
                 logoutButton.style.display = 'none';
-                loginForm.style.display = 'flex'; // Mostra o formulário de login
-                showView('home'); // Se deslogar, volta para a home
+                loginForm.style.display = 'flex';
+                if (modView.classList.contains('active')) {
+                    showView('home');
+                }
             }
         });
 
@@ -230,7 +228,6 @@
 
             try {
                 await signInWithEmailAndPassword(auth, email, password);
-                // O onAuthStateChanged vai cuidar da UI
             } catch (error) {
                 console.error("Erro no login:", error.message);
                 loginError.textContent = "Email ou senha inválidos.";
@@ -243,47 +240,50 @@
         });
 
         // --- LÓGICA DA API SPEEDRUN.COM ---
-        const SMW_GAME_ID = 'v1dexjne'; // ID do Super Mario World na API
+        const SMW_GAME_ID = 'v1dexjne';
+        // CORREÇÃO: A URL base da API precisa da versão /v1/
         const API_BASE_URL = 'https://www.speedrun.com/api/v1';
         const leaderboardsContainer = document.getElementById('leaderboards-container');
 
-        // Função para formatar o tempo de segundos para HH:MM:SS.ms
         function formatTime(seconds) {
             if (!seconds) return '-';
-            const h = Math.floor(seconds / 3600).toString().padStart(2, '0');
-            const m = Math.floor((seconds % 3600) / 60).toString().padStart(2, '0');
-            const s = Math.floor(seconds % 60).toString().padStart(2, '0');
-            const ms = Math.round((seconds - Math.floor(seconds)) * 1000).toString().padStart(3, '0');
-            return `${h}:${m}:${s}.${ms}`;
+            const date = new Date(0);
+            date.setSeconds(seconds);
+            const timeString = date.toISOString().substr(11, 12);
+            return timeString.startsWith('00:') ? timeString.substr(3) : timeString;
         }
         
         async function fetchLeaderboards() {
             try {
-                // 1. Pega as categorias principais do jogo
                 const categoriesResponse = await fetch(`${API_BASE_URL}/games/${SMW_GAME_ID}/categories`);
-                const categoriesData = await categoriesResponse.json();
                 
-                // Limpa o container
+                // BOA PRÁTICA: Verificar se a resposta da API foi bem-sucedida (status 200-299)
+                if (!categoriesResponse.ok) {
+                    throw new Error(`Erro na API: ${categoriesResponse.status} ${categoriesResponse.statusText}`);
+                }
+                
+                const categoriesData = await categoriesResponse.json();
                 leaderboardsContainer.innerHTML = '';
 
-                // 2. Para cada categoria, busca o seu leaderboard
+                if (!categoriesData || !categoriesData.data) {
+                    throw new Error("Formato de dados inesperado da API de categorias.");
+                }
+
                 for (const category of categoriesData.data) {
-                    // Ignora categorias "Per-level"
                     if (category.type === 'per-level') continue;
 
-                    // Cria o HTML para a categoria
                     const categoryDiv = document.createElement('div');
                     categoryDiv.className = 'category';
                     categoryDiv.innerHTML = `<div class="category-title">${category.name}</div>`;
                     
-                    // Busca o leaderboard da categoria
                     const leaderboardResponse = await fetch(`${API_BASE_URL}/leaderboards/${SMW_GAME_ID}/category/${category.id}?top=5&embed=players`);
+                    if (!leaderboardResponse.ok) continue; // Pula esta categoria se houver erro
+                    
                     const leaderboardData = await leaderboardResponse.json();
                     
                     const runs = leaderboardData.data.runs;
                     const players = leaderboardData.data.players.data;
 
-                    // Cria a tabela
                     const table = document.createElement('table');
                     table.className = 'leaderboard-table';
                     table.innerHTML = `<thead><tr><th>#</th><th>Player</th><th>Time</th></tr></thead>`;
@@ -294,15 +294,11 @@
                     } else {
                         runs.forEach(runData => {
                             const player = players.find(p => p.id === runData.run.players[0].id);
-                            const playerName = player ? player.names.international : 'Desconhecido';
-                            const time = formatTime(runData.run.times.primary_t);
+                            const playerName = player ? player.names.international : 'Convidado';
+                            const time = runData.run.times.primary_t ? formatTime(runData.run.times.primary_t) : 'N/A';
                             
                             const row = document.createElement('tr');
-                            row.innerHTML = `
-                                <td>${runData.place}</td>
-                                <td>${playerName}</td>
-                                <td>${time}</td>
-                            `;
+                            row.innerHTML = `<td>${runData.place}</td><td>${playerName}</td><td>${time}</td>`;
                             tbody.appendChild(row);
                         });
                     }
@@ -314,11 +310,10 @@
 
             } catch (error) {
                 console.error("Falha ao buscar dados da Speedrun.com:", error);
-                leaderboardsContainer.innerHTML = '<div class="loader">Erro ao carregar os dados. Tente novamente mais tarde.</div>';
+                leaderboardsContainer.innerHTML = '<div class="loader">Erro ao carregar os dados. Verifique o console para mais detalhes.</div>';
             }
         }
 
-        // Inicia o carregamento dos leaderboards quando a página carregar
         document.addEventListener('DOMContentLoaded', fetchLeaderboards);
 
     </script>
