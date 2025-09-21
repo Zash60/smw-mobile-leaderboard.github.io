@@ -13,19 +13,14 @@
         .main-nav > button.active { background: #555; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-
-        /* Styles for the single toggle button */
         .extension-toggle-container { text-align: center; margin-bottom: 20px; }
         #extension-toggle-btn { background-color: #3e3e3e; color: #ddd; border: 1px solid #555; padding: 6px 12px; border-radius: 5px; font-size: 0.9em; cursor: pointer; }
         #extension-toggle-btn:hover { background-color: #555; }
-
-        /* Styles for the two different category display methods */
         #smw-categories-container, #smwext-categories-container { margin-bottom: 20px; }
         .categories-nav { display: flex; flex-wrap: wrap; justify-content: center; background-color: #252525; border-radius: 8px; padding: 5px; margin-bottom: 10px; }
         .categories-nav button { background-color: transparent; color: #ccc; border: none; padding: 10px 15px; cursor: pointer; font-size: 14px; border-radius: 5px; }
         .categories-nav button.active { background-color: #4a4a4a; color: #fff; font-weight: bold; }
         #smwext-category-select { background-color: #252525; color: white; border: 1px solid #555; padding: 10px; border-radius: 5px; width: 100%; font-size: 1em; }
-
         .leaderboard-list, .submission-list { list-style: none; padding: 0; }
         .leaderboard-list li { background: #2a2a2a; margin-bottom: 8px; padding: 15px; border-radius: 5px; display: flex; align-items: center; gap: 15px; }
         .leaderboard-list .rank { font-weight: bold; font-size: 1.2em; color: #888; min-width: 25px; text-align: right; }
@@ -236,20 +231,9 @@
           select.innerHTML = '';
           if (allCategoriesData.length > 0) {
               allCategoriesData.forEach(category => {
-                  const subVar = category.variables.data.find(v => v['is-subcategory']);
-                  if (subVar) {
-                      Object.entries(subVar.values.values).forEach(([valueId, valueData]) => {
-                          const option = new Option(`${category.name} - ${valueData.label}`);
-                          option.dataset.categoryId = category.id;
-                          option.dataset.variableId = subVar.id;
-                          option.dataset.valueId = valueId;
-                          select.appendChild(option);
-                      });
-                  } else {
-                      const option = new Option(category.name);
-                      option.dataset.categoryId = category.id;
-                      select.appendChild(option);
-                  }
+                  const option = new Option(category.name, category.id);
+                  option.dataset.categoryId = category.id;
+                  select.appendChild(option);
               });
               loadLeaderboardFromDropdown(select);
           }
