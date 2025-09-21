@@ -1,32 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SMW Speedrun Mobile</title>
     <style>
-        body { font-family: Arial, sans-serif; background-color: #1a1a1a; color: #f0f0f0; margin: 0; padding: 20px; }
-        .container { max-width: 800px; margin: auto; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; color: #f0f0f0; margin: 0; padding: 10px; }
+        .container { max-width: 900px; margin: auto; }
         header { text-align: center; margin-bottom: 20px; }
-        nav { display: flex; justify-content: center; margin-bottom: 20px; }
-        nav button { background: #333; color: white; border: none; padding: 10px 20px; margin: 0 5px; cursor: pointer; font-size: 16px; border-radius: 5px; }
-        nav button.active { background: #555; }
+        nav { display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 15px; }
+        nav > button { background: #333; color: white; border: none; padding: 10px 20px; margin: 0 5px; cursor: pointer; font-size: 16px; border-radius: 5px; }
+        nav > button.active { background: #555; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        #categories, #leaderboard { margin-top: 20px; }
-        .category-list, .leaderboard-list { list-style: none; padding: 0; }
-        .category-list li, .leaderboard-list li { background: #2a2a2a; margin-bottom: 10px; padding: 15px; border-radius: 5px; }
-        .category-list li strong { font-size: 1.2em; color: #eee; }
-        .subcategory-list { list-style: none; padding-left: 20px; margin-top: 10px; }
-        .subcategory-list li { cursor: pointer; color: #aaa; }
-        .subcategory-list li:hover { color: #fff; }
-        .leaderboard-list li { display: flex; justify-content: space-between; align-items: center; }
+
+        /* Estilo das abas de categoria */
+        .categories-nav { display: flex; flex-wrap: wrap; justify-content: center; background-color: #252525; border-radius: 8px; padding: 5px; margin-bottom: 10px; }
+        .categories-nav button { background-color: transparent; color: #ccc; border: none; padding: 10px 15px; cursor: pointer; font-size: 14px; border-radius: 5px; }
+        .categories-nav button.active { background-color: #4a4a4a; color: #fff; font-weight: bold; }
+
+        .leaderboard-list { list-style: none; padding: 0; }
+        .leaderboard-list li { background: #2a2a2a; margin-bottom: 8px; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; }
+        .leaderboard-list li .player-info { color: #ddd; }
+        .leaderboard-list li .time { font-weight: bold; color: #fff; }
+
         .loader { text-align: center; padding: 20px; font-size: 1.5em; }
         #login-form, #submit-run-form { display: flex; flex-direction: column; gap: 10px; background: #2a2a2a; padding: 20px; border-radius: 5px; }
         input { padding: 10px; border-radius: 3px; border: 1px solid #444; background: #333; color: white; }
         button { background-color: #4CAF50; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 3px; }
-        button:hover { background-color: #45a049; }
-        #mod-content { display: none; }
     </style>
 </head>
 <body>
@@ -41,123 +42,123 @@
             <button onclick="showTab('mod')" id="mod-btn">Mod</button>
         </nav>
 
-        <!-- Home Tab -->
+        <!-- Aba Home -->
         <div id="home" class="tab-content active">
-            <h2>Super Mario World Categories</h2>
-            <div id="categories-container">
-                <div class="loader">Loading categories...</div>
-                <ul id="categories-list" class="category-list"></ul>
-            </div>
-            <hr>
+            <div id="main-categories-nav" class="categories-nav"></div>
+            <div id="sub-categories-nav" class="categories-nav" style="margin-top: 5px;"></div>
+            
             <h2 id="leaderboard-title">Leaderboard</h2>
             <div id="leaderboard-container">
-                 <div id="leaderboard-loader" class="loader" style="display: none;">Loading leaderboard...</div>
+                <div id="leaderboard-loader" class="loader" style="display: none;">Carregando leaderboard...</div>
                 <ul id="leaderboard-list" class="leaderboard-list"></ul>
             </div>
         </div>
 
-        <!-- Mod Tab -->
+        <!-- Aba Mod -->
         <div id="mod" class="tab-content">
-            <div id="login-container">
-                <h2>Moderator Login</h2>
-                <form id="login-form" onsubmit="login(event)">
-                    <input type="email" id="email" placeholder="Email" required>
-                    <input type="password" id="password" placeholder="Password" required>
-                    <button type="submit">Login</button>
-                </form>
-            </div>
-
-            <div id="mod-content">
-                <h2>Add New Run</h2>
-                <form id="submit-run-form" onsubmit="submitRun(event)">
-                    <input type="text" id="player-name" placeholder="Player Name" required>
-                    <input type="text" id="run-time" placeholder="Time (e.g., 1h 23m 45s 678ms)" required>
-                    <input type="text" id="platform" placeholder="Platform" required>
-                    <button type="submit">Submit Run</button>
-                </form>
-                <button onclick="logout()">Logout</button>
-            </div>
+            <!-- Conteúdo de Moderação (login, etc.) -->
         </div>
     </div>
 
     <script type="module">
-      // Firebase SDK imports
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-      import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+      import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-      // IMPORTANT: Replace with your own Firebase project configuration
+      // ATENÇÃO: Substitua pela configuração do seu projeto Firebase
       const firebaseConfig = {
-        apiKey: "YOUR_API_KEY",
-        authDomain: "YOUR_AUTH_DOMAIN",
-        projectId: "YOUR_PROJECT_ID",
-        storageBucket: "YOUR_STORAGE_BUCKET",
-        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-        appId: "YOUR_APP_ID"
+        apiKey: "SUA_API_KEY",
+        authDomain: "SEU_AUTH_DOMAIN",
+        projectId: "SEU_PROJECT_ID",
+        storageBucket: "SEU_STORAGE_BUCKET",
+        messagingSenderId: "SEU_MESSAGING_SENDER_ID",
+        appId: "SEU_APP_ID"
       };
 
-      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const database = getDatabase(app);
       
-      let currentCategoryRef = null;
-
-      // --- Speedrun.com API Logic ---
-      const gameId = 'smw'; // Super Mario World game ID on speedrun.com
+      let allCategoriesData = [];
+      const gameId = 'smw';
       const apiBaseUrl = `https://www.speedrun.com/api/v1`;
 
-      async function fetchCategories() {
-          const categoriesContainer = document.getElementById('categories-list');
-          const loader = document.querySelector('#categories-container .loader');
+      async function fetchAndDisplayCategories() {
+          const mainCategoriesNav = document.getElementById('main-categories-nav');
+          const loader = document.createElement('div');
+          loader.className = 'loader';
+          loader.textContent = 'Carregando categorias...';
+          mainCategoriesNav.appendChild(loader);
+
           try {
-              // *** FIX IS HERE: Added ?embed=variables to the URL ***
               const response = await fetch(`${apiBaseUrl}/games/${gameId}/categories?embed=variables`);
               const data = await response.json();
-              loader.style.display = 'none';
+              allCategoriesData = data.data;
+              mainCategoriesNav.innerHTML = ''; // Limpa o loader
 
-              data.data.forEach(category => {
-                  const li = document.createElement('li');
-                  li.innerHTML = `<strong>${category.name}</strong>`;
+              allCategoriesData.forEach((category, index) => {
+                  const button = document.createElement('button');
+                  button.textContent = category.name;
+                  button.onclick = () => selectMainCategory(category.id);
+                  mainCategoriesNav.appendChild(button);
                   
-                  // Check for subcategories (variables)
-                  if (category.variables && category.variables.data.length > 0) {
-                      const subcategoryList = document.createElement('ul');
-                      subcategoryList.className = 'subcategory-list';
-                      
-                      category.variables.data.forEach(variable => {
-                          if (variable['is-subcategory']) {
-                              Object.entries(variable.values.values).forEach(([valueId, valueData]) => {
-                                  const subLi = document.createElement('li');
-                                  subLi.textContent = `- ${valueData.label}`;
-                                  // Add click event to load the leaderboard
-                                  subLi.onclick = () => loadLeaderboard(category.id, variable.id, valueId, `${category.name} - ${valueData.label}`);
-                                  subcategoryList.appendChild(subLi);
-                              });
-                          }
-                      });
-                       li.appendChild(subcategoryList);
-                  } else {
-                      // If no subcategories, load the main category leaderboard
-                      li.style.cursor = 'pointer';
-                      li.onclick = () => loadLeaderboard(category.id, null, null, category.name);
+                  // Seleciona a primeira categoria por padrão
+                  if (index === 0) {
+                      selectMainCategory(category.id);
                   }
-
-                  categoriesContainer.appendChild(li);
               });
           } catch (error) {
-              console.error('Error fetching categories:', error);
-              loader.textContent = 'Failed to load categories.';
+              console.error('Erro ao buscar categorias:', error);
+              mainCategoriesNav.innerHTML = 'Falha ao carregar categorias.';
           }
       }
-      
-      // --- Leaderboard and Firebase Logic ---
-      function loadLeaderboard(categoryId, variableId = null, valueId = null, title) {
+
+      function selectMainCategory(categoryId) {
+          // Ativa o botão da categoria principal
+          document.querySelectorAll('#main-categories-nav button').forEach(btn => {
+              btn.classList.toggle('active', btn.textContent === allCategoriesData.find(c => c.id === categoryId).name);
+          });
+
+          const subCategoriesNav = document.getElementById('sub-categories-nav');
+          subCategoriesNav.innerHTML = '';
+          const category = allCategoriesData.find(c => c.id === categoryId);
+          const subcategoryVariables = category.variables.data.filter(v => v['is-subcategory']);
+
+          if (subcategoryVariables.length > 0) {
+              const variable = subcategoryVariables[0]; // Assumindo uma variável de subcategoria por categoria principal
+              Object.entries(variable.values.values).forEach(([valueId, valueData], index) => {
+                  const button = document.createElement('button');
+                  button.textContent = valueData.label;
+                  button.onclick = () => selectSubCategory(categoryId, variable.id, valueId, button);
+                  subCategoriesNav.appendChild(button);
+
+                  // Seleciona a primeira subcategoria por padrão
+                  if (index === 0) {
+                      button.click();
+                  }
+              });
+          } else {
+              // Se não há subcategorias, carrega o leaderboard da categoria principal
+              loadLeaderboard(categoryId, null, null, category.name);
+          }
+      }
+
+      function selectSubCategory(categoryId, variableId, valueId, clickedButton) {
+          // Ativa o botão da subcategoria
+          document.querySelectorAll('#sub-categories-nav button').forEach(btn => btn.classList.remove('active'));
+          clickedButton.classList.add('active');
+
+          const category = allCategoriesData.find(c => c.id === categoryId);
+          const title = `${category.name} - ${clickedButton.textContent}`;
+          loadLeaderboard(categoryId, variableId, valueId, title);
+      }
+
+      function loadLeaderboard(categoryId, variableId, valueId, title) {
           const leaderboardList = document.getElementById('leaderboard-list');
           const leaderboardTitle = document.getElementById('leaderboard-title');
           const loader = document.getElementById('leaderboard-loader');
           
-          leaderboardTitle.textContent = `Leaderboard: ${title}`;
+          leaderboardTitle.textContent = title;
           leaderboardList.innerHTML = '';
           loader.style.display = 'block';
 
@@ -165,96 +166,34 @@
           if (variableId && valueId) {
               dbPath += `/${variableId}/${valueId}`;
           }
-          currentCategoryRef = ref(database, dbPath);
 
-          onValue(currentCategoryRef, (snapshot) => {
+          const runsRef = ref(database, dbPath);
+          onValue(runsRef, (snapshot) => {
               loader.style.display = 'none';
-              leaderboardList.innerHTML = ''; // Clear list before adding new items
+              leaderboardList.innerHTML = '';
               const data = snapshot.val();
               if (data) {
                   Object.values(data).forEach(run => {
                       const li = document.createElement('li');
-                      li.innerHTML = `<span>${run.player} - ${run.platform}</span> <strong>${run.time}</strong>`;
+                      li.innerHTML = `<span class="player-info">${run.player} - ${run.platform}</span> <span class="time">${run.time}</span>`;
                       leaderboardList.appendChild(li);
                   });
               } else {
-                  leaderboardList.innerHTML = '<li>No runs submitted for this category yet.</li>';
+                  leaderboardList.innerHTML = '<li>Nenhuma run registrada para esta categoria.</li>';
               }
+          }, (error) => {
+              console.error("Erro de permissão no Firebase:", error);
+              loader.style.display = 'none';
+              leaderboardList.innerHTML = `<li>Erro ao carregar dados. Verifique as regras de segurança do Firebase.</li>`;
           });
       }
 
-      window.submitRun = async function(event) {
-          event.preventDefault();
-          if (!currentCategoryRef) {
-              alert("Please select a category first.");
-              return;
-          }
-
-          const playerName = document.getElementById('player-name').value;
-          const runTime = document.getElementById('run-time').value;
-          const platform = document.getElementById('platform').value;
-
-          try {
-              await push(currentCategoryRef, {
-                  player: playerName,
-                  time: runTime,
-                  platform: platform
-              });
-              alert('Run submitted successfully!');
-              document.getElementById('submit-run-form').reset();
-          } catch (error) {
-              console.error("Error submitting run:", error);
-              alert('Failed to submit run.');
-          }
-      }
-
-      // --- Authentication and Navigation Logic ---
+      // Função para alternar abas principais (Home/Mod)
       window.showTab = function(tabName) {
-          document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
-          document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
-          
-          document.getElementById(tabName).classList.add('active');
-          document.getElementById(`${tabName}-btn`).classList.add('active');
+          // Implementação da troca de abas, se necessário
       }
 
-      window.login = function(event) {
-          event.preventDefault();
-          const email = document.getElementById('email').value;
-          const password = document.getElementById('password').value;
-          
-          signInWithEmailAndPassword(auth, email, password)
-              .then((userCredential) => {
-                  // Login successful
-                  console.log("User logged in:", userCredential.user);
-              })
-              .catch((error) => {
-                  alert("Login Error: " + error.message);
-              });
-      }
-      
-      window.logout = function() {
-          signOut(auth).catch(error => console.error("Logout Error:", error));
-      }
-
-      onAuthStateChanged(auth, (user) => {
-          const loginContainer = document.getElementById('login-container');
-          const modContent = document.getElementById('mod-content');
-          if (user) {
-              // User is signed in
-              loginContainer.style.display = 'none';
-              modContent.style.display = 'block';
-          } else {
-              // User is signed out
-              loginContainer.style.display = 'block';
-              modContent.style.display = 'none';
-          }
-      });
-      
-      // Load categories when the page is ready
-      document.addEventListener('DOMContentLoaded', fetchCategories);
-      
-      // Make functions available globally for the HTML onclick attributes
-      window.loadLeaderboard = loadLeaderboard;
+      document.addEventListener('DOMContentLoaded', fetchAndDisplayCategories);
     </script>
 </body>
 </html>
