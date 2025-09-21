@@ -8,16 +8,17 @@
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; color: #f0f0f0; margin: 0; padding: 10px; }
         .container { max-width: 900px; margin: auto; }
         header { text-align: center; margin-bottom: 20px; }
-        nav { display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 15px; }
-        nav > button { background: #333; color: white; border: none; padding: 10px 20px; margin: 0 5px; cursor: pointer; font-size: 16px; border-radius: 5px; }
-        nav > button.active { background: #555; }
+        .main-nav { display: flex; justify-content: center; margin-bottom: 20px; border-bottom: 1px solid #444; padding-bottom: 15px; }
+        .main-nav > button { background: #333; color: white; border: none; padding: 10px 20px; margin: 0 5px; cursor: pointer; font-size: 16px; border-radius: 5px; }
+        .main-nav > button.active { background: #555; }
         .tab-content { display: none; }
         .tab-content.active { display: block; }
 
         /* Estilo das abas de categoria */
         .categories-nav { display: flex; flex-wrap: wrap; justify-content: center; background-color: #252525; border-radius: 8px; padding: 5px; margin-bottom: 10px; }
-        .categories-nav button { background-color: transparent; color: #ccc; border: none; padding: 10px 15px; cursor: pointer; font-size: 14px; border-radius: 5px; }
+        .categories-nav button { background-color: transparent; color: #ccc; border: none; padding: 10px 15px; cursor: pointer; font-size: 14px; border-radius: 5px; transition: background-color 0.2s; }
         .categories-nav button.active { background-color: #4a4a4a; color: #fff; font-weight: bold; }
+        .categories-nav button:hover:not(.active) { background-color: #383838; }
 
         .leaderboard-list { list-style: none; padding: 0; }
         .leaderboard-list li { background: #2a2a2a; margin-bottom: 8px; padding: 15px; border-radius: 5px; display: flex; justify-content: space-between; align-items: center; font-size: 1.1em; }
@@ -25,9 +26,13 @@
         .leaderboard-list li .time { font-weight: bold; color: #fff; }
 
         .loader { text-align: center; padding: 20px; font-size: 1.5em; }
-        #login-form, #submit-run-form { display: flex; flex-direction: column; gap: 10px; background: #2a2a2a; padding: 20px; border-radius: 5px; }
-        input { padding: 10px; border-radius: 3px; border: 1px solid #444; background: #333; color: white; }
-        button { background-color: #4CAF50; color: white; padding: 10px; border: none; cursor: pointer; border-radius: 3px; }
+        #login-form, #submit-run-form { display: flex; flex-direction: column; gap: 10px; background: #2a2a2a; padding: 20px; border-radius: 5px; max-width: 400px; margin: auto; }
+        input { padding: 10px; border-radius: 3px; border: 1px solid #444; background: #333; color: white; font-size: 16px; }
+        button { background-color: #4CAF50; color: white; padding: 12px; border: none; cursor: pointer; border-radius: 3px; font-size: 16px; }
+        button:hover { background-color: #45a049; }
+        #mod-content { display: none; }
+        #logout-btn { background-color: #f44336; margin-top: 20px; }
+        #logout-btn:hover { background-color: #d32f2f; }
     </style>
 </head>
 <body>
@@ -37,7 +42,7 @@
             <h1>SMW Speedrun Mobile</h1>
         </header>
 
-        <nav>
+        <nav class="main-nav">
             <button onclick="showTab('home')" id="home-btn" class="active">Home</button>
             <button onclick="showTab('mod')" id="mod-btn">Mod</button>
         </nav>
@@ -47,54 +52,78 @@
             <div id="main-categories-nav" class="categories-nav"></div>
             <div id="sub-categories-nav" class="categories-nav" style="margin-top: 5px;"></div>
             
-            <h2 id="leaderboard-title">Leaderboard</h2>
+            <h2 id="leaderboard-title" style="text-align: center;">Leaderboard</h2>
             <div id="leaderboard-container">
-                <div id="leaderboard-loader" class="loader" style="display: none;">Carregando leaderboard...</div>
+                <div id="leaderboard-loader" class="loader">Selecione uma categoria</div>
                 <ul id="leaderboard-list" class="leaderboard-list"></ul>
             </div>
         </div>
 
         <!-- Aba Mod -->
         <div id="mod" class="tab-content">
-            <!-- Conteúdo de Moderação (login, etc.) -->
+             <div id="login-container">
+                <h2>Login de Moderador</h2>
+                <form id="login-form" onsubmit="login(event)">
+                    <input type="email" id="email" placeholder="Email" required>
+                    <input type="password" id="password" placeholder="Senha" required>
+                    <button type="submit">Entrar</button>
+                </form>
+            </div>
+
+            <div id="mod-content">
+                <h2>Adicionar Nova Run</h2>
+                <p style="text-align: center;">A run será adicionada à categoria selecionada na aba Home.</p>
+                <form id="submit-run-form" onsubmit="submitRun(event)">
+                    <input type="text" id="player-name" placeholder="Nome do Jogador" required>
+                    <input type="text" id="run-time" placeholder="Tempo (ex: 9m 42s 440ms)" required>
+                    <input type="text" id="platform" placeholder="Plataforma (ex: SNES)" required>
+                    <button type="submit">Enviar Run</button>
+                </form>
+                <button id="logout-btn" onclick="logout()">Sair (Logout)</button>
+            </div>
         </div>
     </div>
 
     <script type="module">
+      // Importações do Firebase
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-      import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+      import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-      // ATENÇÃO: Substitua pela configuração do seu projeto Firebase
+      // Sua configuração do Firebase (fornecida por você)
       const firebaseConfig = {
-        apiKey: "SUA_API_KEY",
-        authDomain: "SEU_AUTH_DOMAIN",
-        projectId: "SEU_PROJECT_ID",
-        storageBucket: "SEU_STORAGE_BUCKET",
-        messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-        appId: "SEU_APP_ID"
+        apiKey: "AIzaSyBoH4wSUIA3y57Qv_uPaELmzuNNffSU9x4",
+        authDomain: "smw-speedrun-mobile.firebaseapp.com",
+        databaseURL: "https://smw-speedrun-mobile-default-rtdb.firebaseio.com",
+        projectId: "smw-speedrun-mobile",
+        storageBucket: "smw-speedrun-mobile.firebasestorage.app",
+        messagingSenderId: "1051268583534",
+        appId: "1:1051268583534:web:c813c2b8b28cb5fea1567f"
       };
 
+      // Inicialização
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const database = getDatabase(app);
       
       let allCategoriesData = [];
+      let currentDbRefPath = null; // Armazena o caminho do DB para a run
+      
       const gameId = 'smw';
       const apiBaseUrl = `https://www.speedrun.com/api/v1`;
 
       async function fetchAndDisplayCategories() {
           const mainCategoriesNav = document.getElementById('main-categories-nav');
-          const loader = document.createElement('div');
-          loader.className = 'loader';
+          const loader = document.getElementById('leaderboard-loader');
           loader.textContent = 'Carregando categorias...';
-          mainCategoriesNav.appendChild(loader);
+          loader.style.display = 'block';
 
           try {
               const response = await fetch(`${apiBaseUrl}/games/${gameId}/categories?embed=variables`);
               const data = await response.json();
               allCategoriesData = data.data;
-              mainCategoriesNav.innerHTML = ''; // Limpa o loader
+              mainCategoriesNav.innerHTML = '';
+              loader.textContent = 'Selecione uma categoria';
 
               allCategoriesData.forEach((category, index) => {
                   const button = document.createElement('button');
@@ -102,21 +131,20 @@
                   button.onclick = () => selectMainCategory(category.id);
                   mainCategoriesNav.appendChild(button);
                   
-                  // Seleciona a primeira categoria por padrão
                   if (index === 0) {
                       selectMainCategory(category.id);
                   }
               });
           } catch (error) {
               console.error('Erro ao buscar categorias:', error);
-              mainCategoriesNav.innerHTML = 'Falha ao carregar categorias.';
+              loader.textContent = 'Falha ao carregar categorias.';
           }
       }
 
       function selectMainCategory(categoryId) {
-          // Ativa o botão da categoria principal
           document.querySelectorAll('#main-categories-nav button').forEach(btn => {
-              btn.classList.toggle('active', btn.textContent === allCategoriesData.find(c => c.id === categoryId).name);
+              const category = allCategoriesData.find(c => c.id === categoryId);
+              btn.classList.toggle('active', btn.textContent === category.name);
           });
 
           const subCategoriesNav = document.getElementById('sub-categories-nav');
@@ -125,26 +153,22 @@
           const subcategoryVariables = category.variables.data.filter(v => v['is-subcategory']);
 
           if (subcategoryVariables.length > 0) {
-              const variable = subcategoryVariables[0]; // Assumindo uma variável de subcategoria por categoria principal
+              const variable = subcategoryVariables[0];
               Object.entries(variable.values.values).forEach(([valueId, valueData], index) => {
                   const button = document.createElement('button');
                   button.textContent = valueData.label;
                   button.onclick = () => selectSubCategory(categoryId, variable.id, valueId, button);
                   subCategoriesNav.appendChild(button);
-
-                  // Seleciona a primeira subcategoria por padrão
                   if (index === 0) {
                       button.click();
                   }
               });
           } else {
-              // Se não há subcategorias, carrega o leaderboard da categoria principal
               loadLeaderboard(categoryId, null, null, category.name);
           }
       }
 
       function selectSubCategory(categoryId, variableId, valueId, clickedButton) {
-          // Ativa o botão da subcategoria
           document.querySelectorAll('#sub-categories-nav button').forEach(btn => btn.classList.remove('active'));
           clickedButton.classList.add('active');
 
@@ -161,12 +185,14 @@
           leaderboardTitle.textContent = title;
           leaderboardList.innerHTML = '';
           loader.style.display = 'block';
+          loader.textContent = 'Carregando leaderboard...';
 
           let dbPath = `leaderboards/${categoryId}`;
           if (variableId && valueId) {
               dbPath += `/${variableId}/${valueId}`;
           }
-
+          currentDbRefPath = dbPath; // Atualiza a referência atual
+          
           const runsRef = ref(database, dbPath);
           onValue(runsRef, (snapshot) => {
               loader.style.display = 'none';
@@ -179,20 +205,78 @@
                       leaderboardList.appendChild(li);
                   });
               } else {
-                  leaderboardList.innerHTML = '<li>Nenhuma run registrada para esta categoria.</li>';
+                  leaderboardList.innerHTML = '<li style="justify-content: center;">Nenhuma run registrada para esta categoria.</li>';
               }
           }, (error) => {
               console.error("Erro de permissão no Firebase:", error);
               loader.style.display = 'none';
-              leaderboardList.innerHTML = `<li>Erro ao carregar dados. Verifique as regras de segurança do Firebase.</li>`;
+              leaderboardList.innerHTML = `<li style="justify-content: center; color: #ff9999;">Erro ao carregar dados. Verifique as regras de segurança do Firebase.</li>`;
           });
       }
 
-      // Função para alternar abas principais (Home/Mod)
+      // --- Lógica de Autenticação e Navegação ---
       window.showTab = function(tabName) {
-          // Implementação da troca de abas, se necessário
+          document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+          document.querySelectorAll('.main-nav button').forEach(btn => btn.classList.remove('active'));
+          
+          document.getElementById(tabName).classList.add('active');
+          document.getElementById(`${tabName}-btn`).classList.add('active');
       }
 
+      window.login = function(event) {
+          event.preventDefault();
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+          
+          signInWithEmailAndPassword(auth, email, password)
+              .catch((error) => {
+                  alert("Erro no login: " + error.message);
+              });
+      }
+      
+      window.logout = function() {
+          signOut(auth).catch(error => console.error("Erro ao sair:", error));
+      }
+
+      window.submitRun = async function(event) {
+          event.preventDefault();
+          if (!currentDbRefPath) {
+              alert("Por favor, selecione uma categoria na aba Home primeiro.");
+              return;
+          }
+
+          const playerName = document.getElementById('player-name').value;
+          const runTime = document.getElementById('run-time').value;
+          const platform = document.getElementById('platform').value;
+
+          try {
+              const categoryRef = ref(database, currentDbRefPath);
+              await push(categoryRef, {
+                  player: playerName,
+                  time: runTime,
+                  platform: platform
+              });
+              alert('Run enviada com sucesso!');
+              document.getElementById('submit-run-form').reset();
+              showTab('home'); // Volta para a aba home para ver o resultado
+          } catch (error) {
+              console.error("Erro ao enviar a run:", error);
+              alert('Falha ao enviar a run.');
+          }
+      }
+
+      onAuthStateChanged(auth, (user) => {
+          const loginContainer = document.getElementById('login-container');
+          const modContent = document.getElementById('mod-content');
+          if (user) {
+              loginContainer.style.display = 'none';
+              modContent.style.display = 'block';
+          } else {
+              loginContainer.style.display = 'block';
+              modContent.style.display = 'none';
+          }
+      });
+      
       document.addEventListener('DOMContentLoaded', fetchAndDisplayCategories);
     </script>
 </body>
