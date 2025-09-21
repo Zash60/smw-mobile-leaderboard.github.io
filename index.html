@@ -113,8 +113,8 @@
                 <input type="text" id="run-time" required>
                 <label for="run-date">Date of Run:</label>
                 <input type="date" id="run-date" required>
-                <label for="youtube-url">YouTube Video URL:</label>
-                <input type="url" id="youtube-url" placeholder="https://youtu.be/..." required>
+                <label for="video-url">Video URL:</label>
+                <input type="url" id="video-url" placeholder="https://youtu.be/..." required>
                 <button type="submit" style="background-color:#007bff">Submit for Verification</button>
             </form>
         </div>
@@ -136,8 +136,8 @@
                 <input type="text" id="edit-run-time" required>
                 <label for="edit-run-date">Date:</label>
                 <input type="date" id="edit-run-date" required>
-                <label for="edit-youtube-url">YouTube Video URL:</label>
-                <input type="url" id="edit-youtube-url" required>
+                <label for="edit-video-url">Video URL:</label>
+                <input type="url" id="edit-video-url" required>
                 <button type="submit">Save Changes</button>
             </form>
         </div>
@@ -165,7 +165,7 @@
       
       let allCategoriesData = [];
       let currentCategorySelection = null;
-      const gameId = 'smw'; // Used to construct database paths
+      const gameId = 'smw';
       const apiBaseUrl = `https://www.speedrun.com/api/v1`;
 
       function parseTimeToMilliseconds(timeStr) {
@@ -197,7 +197,6 @@
       function loadLeaderboard(categoryId, variableId, valueId, title) {
           currentCategorySelection = { categoryId, variableId, valueId, title };
           const leaderboardList = document.getElementById('leaderboard-list');
-          const leaderboardTitle = document.getElementById('leaderboard-title');
           const loader = document.getElementById('leaderboard-loader');
           leaderboardTitle.textContent = title;
           leaderboardList.innerHTML = '';
@@ -218,7 +217,7 @@
                   runs.forEach((run, index) => {
                       const li = document.createElement('li');
                       const youtubeIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.582,6.186 C21.328,5.247 20.753,4.672 19.814,4.418 C18.109,4 12,4 12,4 C12,4 5.891,4 4.186,4.418 C3.247,4.672 2.672,5.247 2.418,6.186 C2,7.891 2,12 2,12 C2,12 2,16.109 2.418,17.814 C2.672,18.753 3.247,19.328 4.186,19.582 C5.891,20 12,20 12,20 C12,20 18.109,20 19.814,19.582 C20.753,19.328 21.328,18.753 21.582,17.814 C22,16.109 22,12 22,12 C22,12 22,7.891 21.582,6.186 Z" fill="#FF0000"/><path d="M9.75,15.5 L15.75,12 L9.75,8.5 L9.75,15.5 Z" fill="white"/></svg>`;
-                      const youtubeLink = run.youtubeUrl ? `<a href="${run.youtubeUrl}" target="_blank" class="yt-link" title="Watch video">${youtubeIcon}</a>` : '';
+                      const youtubeLink = run.videoUrl ? `<a href="${run.videoUrl}" target="_blank" class="yt-link" title="Watch video">${youtubeIcon}</a>` : '';
                       
                       li.innerHTML = `
                           <strong class="rank">#${index + 1}</strong>
@@ -259,13 +258,18 @@
               player: document.getElementById('player-name').value,
               time: document.getElementById('run-time').value,
               date: document.getElementById('run-date').value,
-              youtubeUrl: document.getElementById('youtube-url').value,
+              videoUrl: document.getElementById('video-url').value,
               status: 'pending',
               submittedAt: new Date().toISOString(),
-              categoryId: mainCatSelect.value,
-              variableId: subCatVariable?.id || null,
-              valueId: subCatSelect.value || null,
-              title: selectedSubCat ? `${selectedCategory.name} - ${selectedSubCat.label}` : selectedCategory.name
+              category: {
+                id: selectedCategory.id,
+                name: selectedCategory.name
+              },
+              subcategory: selectedSubCat ? {
+                variableId: subCatVariable.id,
+                valueId: subCatSelect.value,
+                name: selectedSubCat.label
+              } : null
           };
           
           try {
@@ -303,11 +307,13 @@
                   if (data.status === 'pending' || data.status === 'verified') {
                       rejectButton = `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')">Reject</button>`;
                   }
+                  
+                  const categoryTitle = data.subcategory ? `${data.category.name} - ${data.subcategory.name}` : data.category.name;
 
                   item.innerHTML = `
                       <p><strong>Player:</strong> ${data.player} | <strong>Time:</strong> ${data.time} | <strong>Date:</strong> ${data.date}</p>
-                      <p><strong>Category:</strong> ${data.title}</p>
-                      <p><strong>Video:</strong> <a href="${data.youtubeUrl}" target="_blank">Watch</a></p>
+                      <p><strong>Category:</strong> ${categoryTitle}</p>
+                      <p><strong>Video:</strong> <a href="${data.videoUrl}" target="_blank">Watch</a></p>
                       <div class="submission-actions">
                           ${data.status === 'pending' ? `<button class="btn-verify" onclick="verifyRun('${id}')">Approve</button>` : ''}
                           ${rejectButton}
@@ -327,8 +333,8 @@
               const data = snapshot.val();
 
               if (data && data.status === 'verified' && newStatus === 'rejected' && data.leaderboardKey) {
-                  let leaderboardPath = `games/${gameId}/leaderboards/${data.categoryId}`;
-                  if (data.variableId && data.valueId) leaderboardPath += `/${data.variableId}/${data.valueId}`;
+                  let leaderboardPath = `games/${gameId}/leaderboards/${data.category.id}`;
+                  if (data.subcategory) leaderboardPath += `/${data.subcategory.variableId}/${data.subcategory.valueId}`;
                   leaderboardPath += `/${data.leaderboardKey}`;
                   
                   await remove(ref(database, leaderboardPath));
@@ -350,14 +356,14 @@
           const data = snapshot.val();
           if (!data) return;
           
-          let leaderboardPath = `games/${gameId}/leaderboards/${data.categoryId}`;
-          if(data.variableId && data.valueId) leaderboardPath += `/${data.variableId}/${data.valueId}`;
+          let leaderboardPath = `games/${gameId}/leaderboards/${data.category.id}`;
+          if(data.subcategory) leaderboardPath += `/${data.subcategory.variableId}/${data.subcategory.valueId}`;
           
           const newRunOnLeaderboardRef = await push(ref(database, leaderboardPath), {
               player: data.player,
               time: data.time,
               date: data.date,
-              youtubeUrl: data.youtubeUrl || ''
+              videoUrl: data.videoUrl || ''
           });
           
           await update(submissionRef, { 
@@ -378,8 +384,8 @@
               const data = snapshot.val();
 
               if (data && data.status === 'verified' && data.leaderboardKey) {
-                  let leaderboardPath = `games/${gameId}/leaderboards/${data.categoryId}`;
-                  if (data.variableId && data.valueId) leaderboardPath += `/${data.variableId}/${data.valueId}`;
+                  let leaderboardPath = `games/${gameId}/leaderboards/${data.category.id}`;
+                  if (data.subcategory) leaderboardPath += `/${data.subcategory.variableId}/${data.subcategory.valueId}`;
                   leaderboardPath += `/${data.leaderboardKey}`;
                   
                   await remove(ref(database, leaderboardPath));
@@ -394,14 +400,21 @@
       }
       
       window.openEditModal = async (id) => {
-          const snapshot = await get(ref(database, `games/${gameId}/submissions/${id}`));
+          const submissionRef = ref(database, `games/${gameId}/submissions/${id}`);
+          const snapshot = await get(submissionRef);
           const data = snapshot.val();
+
+          const selection = {
+            categoryId: data.category.id,
+            valueId: data.subcategory ? data.subcategory.valueId : null
+          };
+
           document.getElementById('edit-run-id').value = id;
-          populateCategoryDropdowns('edit', data);
+          populateCategoryDropdowns('edit', selection);
           document.getElementById('edit-player-name').value = data.player;
           document.getElementById('edit-run-time').value = data.time;
           document.getElementById('edit-run-date').value = data.date;
-          document.getElementById('edit-youtube-url').value = data.youtubeUrl || '';
+          document.getElementById('edit-video-url').value = data.videoUrl || '';
           document.getElementById('edit-run-modal').style.display = 'block';
       }
       
@@ -418,13 +431,24 @@
               player: document.getElementById('edit-player-name').value,
               time: document.getElementById('edit-run-time').value,
               date: document.getElementById('edit-run-date').value,
-              youtubeUrl: document.getElementById('edit-youtube-url').value,
-              categoryId: mainCatSelect.value,
-              variableId: subCatVariable?.id || null,
-              valueId: subCatSelect.value || null,
-              title: selectedSubCat ? `${selectedCategory.name} - ${selectedSubCat.label}` : selectedCategory.name
+              videoUrl: document.getElementById('edit-video-url').value,
+              category: {
+                id: selectedCategory.id,
+                name: selectedCategory.name
+              },
+              subcategory: selectedSubCat ? {
+                variableId: subCatVariable.id,
+                valueId: subCatSelect.value,
+                name: selectedSubCat.label
+              } : null
           };
-          await update(ref(database, `games/${gameId}/submissions/${id}`), updatedData);
+          
+          const submissionRef = ref(database, `games/${gameId}/submissions/${id}`);
+          const snapshot = await get(submissionRef);
+          const existingData = snapshot.val();
+          Object.assign(existingData, updatedData);
+
+          await set(submissionRef, existingData);
           alert('Run updated!');
           closeModal('edit-run-modal');
       }
