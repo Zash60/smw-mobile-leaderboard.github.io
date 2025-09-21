@@ -37,10 +37,20 @@
         .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
 
         /* Mod Panel Styles */
+        #login-form { display: flex; flex-direction: column; gap: 10px; background: #2a2a2a; padding: 20px; border-radius: 5px; max-width: 400px; margin: auto; }
         #login-form h2 { font-size: 1.8em; }
+        .mod-filters { text-align: center; margin-bottom: 20px; }
+        .mod-filters button { background-color: #333; color: white; border: none; padding: 10px 15px; border-radius: 5px; margin: 0 5px; }
+        .mod-filters button.active { background-color: #555; }
         .submission-item { background-color: #2c2c2c; padding: 15px; border-radius: 5px; margin-bottom: 10px; border-left: 4px solid #ffc107; }
         .submission-item.status-verified { border-left-color: #28a745; }
         .submission-item.status-rejected { border-left-color: #dc3545; }
+        .submission-item p { margin: 0 0 10px 0; word-break: break-all; }
+        .submission-actions button { margin-right: 10px; padding: 8px 12px; border: none; border-radius: 4px; color: white; }
+        .btn-verify { background-color: #28a745; }
+        .btn-reject { background-color: #dc3545; }
+        .btn-edit { background-color: #ffc107; color: black; }
+        #logout-btn { display:block; margin: 20px auto; background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -82,7 +92,7 @@
                     <button id="filter-rejected" onclick="loadSubmissions('rejected')">Rejected</button>
                 </div>
                 <div id="submission-list-container" class="submission-list"></div>
-                <button id="logout-btn" onclick="logout()" style="display:block; margin: 20px auto; background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px;">Logout</button>
+                <button id="logout-btn" onclick="logout()">Logout</button>
             </div>
         </div>
     </div>
@@ -166,7 +176,6 @@
       function parseTimeToMilliseconds(timeStr) {
           if (!timeStr || typeof timeStr !== 'string') return 0;
           let totalMs = 0;
-          // Format 1: 1h 10m 5s 123ms
           const hourMatch = timeStr.match(/(\d+)\s*h/);
           const minMatch = timeStr.match(/(\d+)\s*m(?!s)/);
           const secMatch = timeStr.match(/(\d+(\.\d+)?)\s*s/);
@@ -178,15 +187,14 @@
               if (msMatch) totalMs += parseInt(msMatch[1]);
               return totalMs;
           }
-          // Format 2: 1:10:05.123
           const parts = timeStr.split(':');
           if (parts.length === 3) {
-              totalMs += parseInt(parts[0]) * 3600000; // hours
-              totalMs += parseInt(parts[1]) * 60000;   // minutes
-              totalMs += parseFloat(parts[2]) * 1000;   // seconds
+              totalMs += parseInt(parts[0]) * 3600000;
+              totalMs += parseInt(parts[1]) * 60000;
+              totalMs += parseFloat(parts[2]) * 1000;
           } else if (parts.length === 2) {
-              totalMs += parseInt(parts[0]) * 60000;   // minutes
-              totalMs += parseFloat(parts[1]) * 1000;   // seconds
+              totalMs += parseInt(parts[0]) * 60000;
+              totalMs += parseFloat(parts[1]) * 1000;
           }
           return totalMs;
       }
@@ -237,7 +245,7 @@
       
       window.openSubmitModal = function() {
           if (!allCategoriesData.length) {
-              alert("Categories still loading, please wait.");
+              alert("Categories are loading, please wait.");
               return;
           }
           populateCategoryDropdowns('submit', currentCategorySelection);
@@ -274,6 +282,44 @@
               console.error("Error submitting run:", error);
               alert('Failed to submit run.');
           }
+      }
+
+      window.loadSubmissions = function(filterStatus) {
+          document.querySelectorAll('.mod-filters button').forEach(btn => btn.classList.remove('active'));
+          document.getElementById(`filter-${filterStatus}`).classList.add('active');
+
+          const container = document.getElementById('submission-list-container');
+          container.innerHTML = '<div class="loader">Loading submissions...</div>';
+          
+          const submissionsQuery = query(ref(database, 'submissions'), orderByChild('status'), equalTo(filterStatus));
+          onValue(submissionsQuery, (snapshot) => {
+              container.innerHTML = '';
+              const submissions = snapshot.val();
+              if (!submissions || snapshot.size === 0) {
+                  container.innerHTML = `<p style="text-align:center">No '${filterStatus}' submissions found.</p>`;
+                  return;
+              }
+              
+              Object.entries(submissions).forEach(([id, data]) => {
+                  const item = document.createElement('div');
+                  item.className = `submission-item status-${data.status}`;
+                  item.innerHTML = `
+                      <p><strong>Player:</strong> ${data.player} | <strong>Time:</strong> ${data.time} | <strong>Date:</strong> ${data.date}</p>
+                      <p><strong>Category:</strong> ${data.title}</p>
+                      <p><strong>Video:</strong> <a href="${data.youtubeUrl}" target="_blank">Watch</a></p>
+                      <div class="submission-actions">
+                          ${data.status === 'pending' ? `<button class="btn-verify" onclick="verifyRun('${id}')">Approve</button>` : ''}
+                          ${data.status === 'pending' ? `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')">Reject</button>` : ''}
+                          <button class="btn-edit" onclick="openEditModal('${id}')">Edit</button>
+                      </div>
+                  `;
+                  container.appendChild(item);
+              });
+          });
+      }
+
+      window.updateRunStatus = (id, newStatus) => {
+          update(ref(database, `submissions/${id}`), { status: newStatus });
       }
 
       window.verifyRun = async (id) => {
@@ -362,12 +408,91 @@
               subCatSelect.previousElementSibling.style.display = 'none';
           }
       }
+
+      window.showTab = function(tabName) {
+          document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+          document.querySelectorAll('.main-nav button').forEach(btn => btn.classList.remove('active'));
+          document.getElementById(tabName).classList.add('active');
+          document.getElementById(`${tabName}-btn`).classList.add('active');
+      }
+
+      window.login = function(event) {
+          event.preventDefault();
+          const email = document.getElementById('email').value;
+          const password = document.getElementById('password').value;
+          signInWithEmailAndPassword(auth, email, password).catch(error => alert("Login Error: " + error.message));
+      }
       
-      // --- The rest of the JS functions (loadSubmissions, updateRunStatus, authentication, etc.) remain the same ---
-      // This is just a placeholder for brevity, the full code above includes them.
+      window.logout = function() {
+          signOut(auth).catch(error => console.error("Logout Error:", error));
+      }
+
+      onAuthStateChanged(auth, (user) => {
+          if (user) {
+              document.getElementById('login-container').style.display = 'none';
+              document.getElementById('mod-panel').style.display = 'block';
+              loadSubmissions('pending');
+          } else {
+              document.getElementById('login-container').style.display = 'block';
+              document.getElementById('mod-panel').style.display = 'none';
+          }
+      });
       
-      // All other JavaScript functions from the previous version are included below and are unchanged.
-      // (This includes login, logout, showTab, loadSubmissions, onAuthStateChanged, and DOMContentLoaded)
+      document.addEventListener('DOMContentLoaded', async () => {
+          const mainCategoriesNav = document.getElementById('main-categories-nav');
+          const loader = document.getElementById('leaderboard-loader');
+          loader.textContent = 'Loading categories...';
+
+          try {
+              const response = await fetch(`${apiBaseUrl}/games/${gameId}/categories?embed=variables`);
+              const data = await response.json();
+              allCategoriesData = data.data;
+              mainCategoriesNav.innerHTML = '';
+              loader.textContent = 'Select a category';
+
+              allCategoriesData.forEach((category, index) => {
+                  const button = document.createElement('button');
+                  button.textContent = category.name;
+                  button.onclick = () => selectMainCategory(category.id);
+                  mainCategoriesNav.appendChild(button);
+                  if (index === 0) selectMainCategory(category.id);
+              });
+          } catch (error) {
+              console.error('Error fetching categories:', error);
+              loader.textContent = 'Failed to load categories.';
+          }
+      });
+
+      function selectMainCategory(categoryId) {
+          document.querySelectorAll('#main-categories-nav button').forEach(btn => {
+              const category = allCategoriesData.find(c => c.id === categoryId);
+              btn.classList.toggle('active', btn.textContent === category.name);
+          });
+          const subCategoriesNav = document.getElementById('sub-categories-nav');
+          subCategoriesNav.innerHTML = '';
+          const category = allCategoriesData.find(c => c.id === categoryId);
+          const subcategoryVariables = category.variables.data.filter(v => v['is-subcategory']);
+          if (subcategoryVariables.length > 0) {
+              const variable = subcategoryVariables[0];
+              Object.entries(variable.values.values).forEach(([valueId, valueData], index) => {
+                  const button = document.createElement('button');
+                  button.textContent = valueData.label;
+                  button.onclick = () => selectSubCategory(categoryId, variable.id, valueId, button);
+                  subCategoriesNav.appendChild(button);
+                  if (index === 0) button.click();
+              });
+          } else {
+              loadLeaderboard(categoryId, null, null, category.name);
+          }
+      }
+
+      function selectSubCategory(categoryId, variableId, valueId, clickedButton) {
+          document.querySelectorAll('#sub-categories-nav button').forEach(btn => btn.classList.remove('active'));
+          clickedButton.classList.add('active');
+          const category = allCategoriesData.find(c => c.id === categoryId);
+          const title = `${category.name} - ${clickedButton.textContent}`;
+          loadLeaderboard(categoryId, variableId, valueId, title);
+      }
     </script>
 </body>
 </html>
