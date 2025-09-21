@@ -197,6 +197,7 @@
       function loadLeaderboard(categoryId, variableId, valueId, title) {
           currentCategorySelection = { categoryId, variableId, valueId, title };
           const leaderboardList = document.getElementById('leaderboard-list');
+          const leaderboardTitle = document.getElementById('leaderboard-title');
           const loader = document.getElementById('leaderboard-loader');
           leaderboardTitle.textContent = title;
           leaderboardList.innerHTML = '';
