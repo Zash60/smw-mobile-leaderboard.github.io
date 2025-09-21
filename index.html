@@ -165,7 +165,7 @@
       
       let allCategoriesData = [];
       let currentCategorySelection = null;
-      const gameId = 'smw';
+      const gameId = 'smw'; // Used to construct database paths
       const apiBaseUrl = `https://www.speedrun.com/api/v1`;
 
       function parseTimeToMilliseconds(timeStr) {
@@ -204,7 +204,7 @@
           loader.style.display = 'block';
           loader.textContent = 'Loading leaderboard...';
 
-          let dbPath = `leaderboards/${categoryId}`;
+          let dbPath = `games/${gameId}/leaderboards/${categoryId}`;
           if (variableId && valueId) dbPath += `/${variableId}/${valueId}`;
           
           onValue(ref(database, dbPath), (snapshot) => {
@@ -269,7 +269,8 @@
           };
           
           try {
-              await push(ref(database, 'submissions'), runData);
+              const submissionsRef = ref(database, `games/${gameId}/submissions`);
+              await push(submissionsRef, runData);
               alert('Run submitted for verification successfully!');
               closeModal('submit-run-modal');
               document.getElementById('submit-run-form').reset();
@@ -286,7 +287,7 @@
           const container = document.getElementById('submission-list-container');
           container.innerHTML = '<div class="loader">Loading submissions...</div>';
           
-          const submissionsQuery = query(ref(database, 'submissions'), orderByChild('status'), equalTo(filterStatus));
+          const submissionsQuery = query(ref(database, `games/${gameId}/submissions`), orderByChild('status'), equalTo(filterStatus));
           onValue(submissionsQuery, (snapshot) => {
               container.innerHTML = '';
               const submissions = snapshot.val();
@@ -320,18 +321,17 @@
       }
 
       window.updateRunStatus = async (id, newStatus) => {
-          const submissionRef = ref(database, `submissions/${id}`);
+          const submissionRef = ref(database, `games/${gameId}/submissions/${id}`);
           try {
               const snapshot = await get(submissionRef);
               const data = snapshot.val();
 
               if (data && data.status === 'verified' && newStatus === 'rejected' && data.leaderboardKey) {
-                  let leaderboardPath = `leaderboards/${data.categoryId}`;
+                  let leaderboardPath = `games/${gameId}/leaderboards/${data.categoryId}`;
                   if (data.variableId && data.valueId) leaderboardPath += `/${data.variableId}/${data.valueId}`;
                   leaderboardPath += `/${data.leaderboardKey}`;
                   
                   await remove(ref(database, leaderboardPath));
-                  // Clean up the leaderboardKey from the submission
                   await update(submissionRef, { leaderboardKey: null }); 
               }
 
@@ -345,12 +345,12 @@
       }
 
       window.verifyRun = async (id) => {
-          const submissionRef = ref(database, `submissions/${id}`);
+          const submissionRef = ref(database, `games/${gameId}/submissions/${id}`);
           const snapshot = await get(submissionRef);
           const data = snapshot.val();
           if (!data) return;
           
-          let leaderboardPath = `leaderboards/${data.categoryId}`;
+          let leaderboardPath = `games/${gameId}/leaderboards/${data.categoryId}`;
           if(data.variableId && data.valueId) leaderboardPath += `/${data.variableId}/${data.valueId}`;
           
           const newRunOnLeaderboardRef = await push(ref(database, leaderboardPath), {
@@ -372,13 +372,13 @@
               return;
           }
 
-          const submissionRef = ref(database, `submissions/${id}`);
+          const submissionRef = ref(database, `games/${gameId}/submissions/${id}`);
           try {
               const snapshot = await get(submissionRef);
               const data = snapshot.val();
 
               if (data && data.status === 'verified' && data.leaderboardKey) {
-                  let leaderboardPath = `leaderboards/${data.categoryId}`;
+                  let leaderboardPath = `games/${gameId}/leaderboards/${data.categoryId}`;
                   if (data.variableId && data.valueId) leaderboardPath += `/${data.variableId}/${data.valueId}`;
                   leaderboardPath += `/${data.leaderboardKey}`;
                   
@@ -394,7 +394,7 @@
       }
       
       window.openEditModal = async (id) => {
-          const snapshot = await get(ref(database, `submissions/${id}`));
+          const snapshot = await get(ref(database, `games/${gameId}/submissions/${id}`));
           const data = snapshot.val();
           document.getElementById('edit-run-id').value = id;
           populateCategoryDropdowns('edit', data);
@@ -424,7 +424,7 @@
               valueId: subCatSelect.value || null,
               title: selectedSubCat ? `${selectedCategory.name} - ${selectedSubCat.label}` : selectedCategory.name
           };
-          await update(ref(database, `submissions/${id}`), updatedData);
+          await update(ref(database, `games/${gameId}/submissions/${id}`), updatedData);
           alert('Run updated!');
           closeModal('edit-run-modal');
       }
