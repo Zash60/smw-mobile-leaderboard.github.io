@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -27,7 +27,7 @@
         button { cursor: pointer; }
         .submit-run-btn { display: block; width: 200px; margin: 20px auto; padding: 12px; background-color: #007bff; color: white; border: none; border-radius: 5px; font-size: 16px; }
         
-        /* Estilos do Modal */
+        /* Modal Styles */
         .modal { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.7); }
         .modal-content { background-color: #2a2a2a; margin: 5% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; }
         .modal-content form { display: flex; flex-direction: column; gap: 15px; }
@@ -36,7 +36,7 @@
         .modal-content button { font-size: 18px; padding: 12px; }
         .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
 
-        /* Estilos do Painel de Moderação */
+        /* Mod Panel Styles */
         #login-form { display: flex; flex-direction: column; gap: 10px; background: #2a2a2a; padding: 20px; border-radius: 5px; max-width: 400px; margin: auto; }
         #login-form h2 { font-size: 1.8em; }
         .mod-filters { text-align: center; margin-bottom: 20px; }
@@ -62,60 +62,60 @@
             <button onclick="showTab('mod')" id="mod-btn">Mod</button>
         </nav>
         
-        <!-- Aba Home -->
+        <!-- Home Tab -->
         <div id="home" class="tab-content active">
             <div id="main-categories-nav" class="categories-nav"></div>
             <div id="sub-categories-nav" class="categories-nav"></div>
             <h2 id="leaderboard-title" style="text-align: center;">Leaderboard</h2>
-            <button class="submit-run-btn" onclick="openSubmitModal()">Enviar Run</button>
+            <button class="submit-run-btn" onclick="openSubmitModal()">Submit Run</button>
             <div id="leaderboard-container">
-                <div id="leaderboard-loader" class="loader">Selecione uma categoria</div>
+                <div id="leaderboard-loader" class="loader">Select a category</div>
                 <ul id="leaderboard-list" class="leaderboard-list"></ul>
             </div>
         </div>
 
-        <!-- Aba Mod -->
+        <!-- Mod Tab -->
         <div id="mod" class="tab-content">
             <div id="login-container">
                 <form id="login-form" onsubmit="login(event)">
-                    <h2>Login de Moderador</h2>
+                    <h2>Moderator Login</h2>
                     <input type="email" id="email" placeholder="Email" required>
-                    <input type="password" id="password" placeholder="Senha" required>
-                    <button type="submit">Entrar</button>
+                    <input type="password" id="password" placeholder="Password" required>
+                    <button type="submit">Login</button>
                 </form>
             </div>
             <div id="mod-panel" style="display: none;">
-                <h2 style="text-align:center">Painel de Moderação</h2>
+                <h2 style="text-align:center">Moderation Panel</h2>
                 <div class="mod-filters">
-                    <button id="filter-pending" onclick="loadSubmissions('pending')" class="active">Pendentes</button>
-                    <button id="filter-verified" onclick="loadSubmissions('verified')">Verificadas</button>
-                    <button id="filter-rejected" onclick="loadSubmissions('rejected')">Rejeitadas</button>
+                    <button id="filter-pending" onclick="loadSubmissions('pending')" class="active">Pending</button>
+                    <button id="filter-verified" onclick="loadSubmissions('verified')">Verified</button>
+                    <button id="filter-rejected" onclick="loadSubmissions('rejected')">Rejected</button>
                 </div>
                 <div id="submission-list-container" class="submission-list"></div>
-                <button id="logout-btn" onclick="logout()" style="display:block; margin: 20px auto; background-color: #6c757d; color: white; padding: 10px 20px; border: none; border-radius: 5px;">Sair</button>
+                <button id="logout-btn" onclick="logout()">Logout</button>
             </div>
         </div>
     </div>
 
-    <!-- Modais -->
+    <!-- Modals -->
     <div id="submit-run-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('submit-run-modal')">&times;</span>
-            <h2>Enviar Nova Run</h2>
+            <h2>Submit New Run</h2>
             <form id="submit-run-form" onsubmit="submitRun(event)">
-                <label for="submit-main-category">Categoria:</label>
+                <label for="submit-main-category">Category:</label>
                 <select id="submit-main-category" onchange="updateSubCategoryDropdown('submit')"></select>
-                <label for="submit-sub-category">Subcategoria:</label>
+                <label for="submit-sub-category">Subcategory:</label>
                 <select id="submit-sub-category"></select>
-                <label for="player-name">Seu Nickname:</label>
+                <label for="player-name">Your Nickname:</label>
                 <input type="text" id="player-name" required>
-                <label for="run-time">Tempo (ex: 9m 42s 440ms):</label>
+                <label for="run-time">Time (e.g., 9m 42s 440ms):</label>
                 <input type="text" id="run-time" required>
-                <label for="run-date">Data da Run:</label>
+                <label for="run-date">Date of Run:</label>
                 <input type="date" id="run-date" required>
-                <label for="youtube-url">URL do Vídeo do YouTube:</label>
+                <label for="youtube-url">YouTube Video URL:</label>
                 <input type="url" id="youtube-url" placeholder="https://youtu.be/..." required>
-                <button type="submit" style="background-color:#007bff">Enviar para Verificação</button>
+                <button type="submit" style="background-color:#007bff">Submit for Verification</button>
             </form>
         </div>
     </div>
@@ -123,22 +123,22 @@
     <div id="edit-run-modal" class="modal">
         <div class="modal-content">
             <span class="close-btn" onclick="closeModal('edit-run-modal')">&times;</span>
-            <h2>Editar Run</h2>
+            <h2>Edit Run</h2>
             <form id="edit-run-form" onsubmit="saveEditedRun(event)">
                 <input type="hidden" id="edit-run-id">
-                <label for="edit-main-category">Categoria:</label>
+                <label for="edit-main-category">Category:</label>
                 <select id="edit-main-category" onchange="updateSubCategoryDropdown('edit')"></select>
-                <label for="edit-sub-category">Subcategoria:</label>
+                <label for="edit-sub-category">Subcategory:</label>
                 <select id="edit-sub-category"></select>
-                <label for="edit-player-name">Jogador:</label>
+                <label for="edit-player-name">Player:</label>
                 <input type="text" id="edit-player-name" required>
-                <label for="edit-run-time">Tempo:</label>
+                <label for="edit-run-time">Time:</label>
                 <input type="text" id="edit-run-time" required>
-                <label for="edit-run-date">Data:</label>
+                <label for="edit-run-date">Date:</label>
                 <input type="date" id="edit-run-date" required>
-                <label for="edit-youtube-url">URL do Vídeo do YouTube:</label>
+                <label for="edit-youtube-url">YouTube Video URL:</label>
                 <input type="url" id="edit-youtube-url" required>
-                <button type="submit">Salvar Alterações</button>
+                <button type="submit">Save Changes</button>
             </form>
         </div>
     </div>
@@ -202,7 +202,7 @@
           leaderboardTitle.textContent = title;
           leaderboardList.innerHTML = '';
           loader.style.display = 'block';
-          loader.textContent = 'Carregando leaderboard...';
+          loader.textContent = 'Loading leaderboard...';
 
           let dbPath = `leaderboards/${categoryId}`;
           if (variableId && valueId) dbPath += `/${variableId}/${valueId}`;
@@ -218,7 +218,7 @@
                   runs.forEach((run, index) => {
                       const li = document.createElement('li');
                       const youtubeIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.582,6.186 C21.328,5.247 20.753,4.672 19.814,4.418 C18.109,4 12,4 12,4 C12,4 5.891,4 4.186,4.418 C3.247,4.672 2.672,5.247 2.418,6.186 C2,7.891 2,12 2,12 C2,12 2,16.109 2.418,17.814 C2.672,18.753 3.247,19.328 4.186,19.582 C5.891,20 12,20 12,20 C12,20 18.109,20 19.814,19.582 C20.753,19.328 21.328,18.753 21.582,17.814 C22,16.109 22,12 22,12 C22,12 22,7.891 21.582,6.186 Z" fill="#FF0000"/><path d="M9.75,15.5 L15.75,12 L9.75,8.5 L9.75,15.5 Z" fill="white"/></svg>`;
-                      const youtubeLink = run.youtubeUrl ? `<a href="${run.youtubeUrl}" target="_blank" class="yt-link" title="Assistir ao vídeo">${youtubeIcon}</a>` : '';
+                      const youtubeLink = run.youtubeUrl ? `<a href="${run.youtubeUrl}" target="_blank" class="yt-link" title="Watch video">${youtubeIcon}</a>` : '';
                       
                       li.innerHTML = `
                           <strong class="rank">#${index + 1}</strong>
@@ -231,7 +231,7 @@
                       leaderboardList.appendChild(li);
                   });
               } else {
-                  leaderboardList.innerHTML = '<li style="justify-content: center;">Nenhuma run enviada para esta categoria ainda.</li>';
+                  leaderboardList.innerHTML = '<li style="justify-content: center;">No runs submitted for this category yet.</li>';
               }
           });
       }
@@ -240,7 +240,7 @@
       
       window.openSubmitModal = function() {
           if (!allCategoriesData.length) {
-              alert("As categorias ainda estão carregando, por favor aguarde.");
+              alert("Categories are still loading, please wait.");
               return;
           }
           populateCategoryDropdowns('submit', currentCategorySelection);
@@ -270,12 +270,12 @@
           
           try {
               await push(ref(database, 'submissions'), runData);
-              alert('Run enviada para verificação com sucesso!');
+              alert('Run submitted for verification successfully!');
               closeModal('submit-run-modal');
               document.getElementById('submit-run-form').reset();
           } catch (error) {
-              console.error("Erro ao enviar a run:", error);
-              alert('Falha ao enviar a run.');
+              console.error("Error submitting run:", error);
+              alert('Failed to submit run.');
           }
       }
 
@@ -284,14 +284,14 @@
           document.getElementById(`filter-${filterStatus}`).classList.add('active');
 
           const container = document.getElementById('submission-list-container');
-          container.innerHTML = '<div class="loader">Carregando submissões...</div>';
+          container.innerHTML = '<div class="loader">Loading submissions...</div>';
           
           const submissionsQuery = query(ref(database, 'submissions'), orderByChild('status'), equalTo(filterStatus));
           onValue(submissionsQuery, (snapshot) => {
               container.innerHTML = '';
               const submissions = snapshot.val();
               if (!submissions || snapshot.size === 0) {
-                  container.innerHTML = `<p style="text-align:center">Nenhuma submissão '${filterStatus}' encontrada.</p>`;
+                  container.innerHTML = `<p style="text-align:center">No '${filterStatus}' submissions found.</p>`;
                   return;
               }
               
@@ -299,14 +299,14 @@
                   const item = document.createElement('div');
                   item.className = `submission-item status-${data.status}`;
                   item.innerHTML = `
-                      <p><strong>Jogador:</strong> ${data.player} | <strong>Tempo:</strong> ${data.time} | <strong>Data:</strong> ${data.date}</p>
-                      <p><strong>Categoria:</strong> ${data.title}</p>
-                      <p><strong>Vídeo:</strong> <a href="${data.youtubeUrl}" target="_blank">Assistir</a></p>
+                      <p><strong>Player:</strong> ${data.player} | <strong>Time:</strong> ${data.time} | <strong>Date:</strong> ${data.date}</p>
+                      <p><strong>Category:</strong> ${data.title}</p>
+                      <p><strong>Video:</strong> <a href="${data.youtubeUrl}" target="_blank">Watch</a></p>
                       <div class="submission-actions">
-                          ${data.status === 'pending' ? `<button class="btn-verify" onclick="verifyRun('${id}')">Aprovar</button>` : ''}
-                          ${data.status === 'pending' || data.status === 'verified' ? `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')">Rejeitar</button>` : ''}
-                          <button class="btn-edit" onclick="openEditModal('${id}')">Editar</button>
-                          <button class="btn-delete" onclick="deleteRun('${id}')">Deletar</button>
+                          ${data.status === 'pending' ? `<button class="btn-verify" onclick="verifyRun('${id}')">Approve</button>` : ''}
+                          ${data.status === 'pending' || data.status === 'verified' ? `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')">Reject</button>` : ''}
+                          <button class="btn-edit" onclick="openEditModal('${id}')">Edit</button>
+                          <button class="btn-delete" onclick="deleteRun('${id}')">Delete</button>
                       </div>
                   `;
                   container.appendChild(item);
@@ -316,7 +316,7 @@
 
       window.updateRunStatus = (id, newStatus) => {
           update(ref(database, `submissions/${id}`), { status: newStatus });
-          alert(`Status da run alterado para ${newStatus}.`);
+          alert(`Run status changed to ${newStatus}.`);
       }
 
       window.verifyRun = async (id) => {
@@ -339,11 +339,11 @@
               status: 'verified',
               leaderboardKey: newRunOnLeaderboardRef.key
           });
-          alert('Run verificada e adicionada ao leaderboard!');
+          alert('Run verified and added to the leaderboard!');
       }
 
       window.deleteRun = async (id) => {
-          if (!confirm("Você tem certeza que deseja deletar esta run permanentemente? Esta ação não pode ser desfeita.")) {
+          if (!confirm("Are you sure you want to permanently delete this run? This action cannot be undone.")) {
               return;
           }
 
@@ -361,10 +361,10 @@
               }
 
               await remove(submissionRef);
-              alert('Run deletada permanentemente.');
+              alert('Run permanently deleted.');
           } catch (error) {
-              console.error("Erro ao deletar run:", error);
-              alert("Falha ao deletar a run.");
+              console.error("Error deleting run:", error);
+              alert("Failed to delete run.");
           }
       }
       
@@ -400,7 +400,7 @@
               title: selectedSubCat ? `${selectedCategory.name} - ${selectedSubCat.label}` : selectedCategory.name
           };
           await update(ref(database, `submissions/${id}`), updatedData);
-          alert('Run atualizada!');
+          alert('Run updated!');
           closeModal('edit-run-modal');
       }
 
@@ -447,11 +447,11 @@
           event.preventDefault();
           const email = document.getElementById('email').value;
           const password = document.getElementById('password').value;
-          signInWithEmailAndPassword(auth, email, password).catch(error => alert("Erro de Login: " + error.message));
+          signInWithEmailAndPassword(auth, email, password).catch(error => alert("Login Error: " + error.message));
       }
       
       window.logout = function() {
-          signOut(auth).catch(error => console.error("Erro ao Sair:", error));
+          signOut(auth).catch(error => console.error("Logout Error:", error));
       }
 
       onAuthStateChanged(auth, (user) => {
@@ -468,14 +468,14 @@
       document.addEventListener('DOMContentLoaded', async () => {
           const mainCategoriesNav = document.getElementById('main-categories-nav');
           const loader = document.getElementById('leaderboard-loader');
-          loader.textContent = 'Carregando categorias...';
+          loader.textContent = 'Loading categories...';
 
           try {
               const response = await fetch(`${apiBaseUrl}/games/${gameId}/categories?embed=variables`);
               const data = await response.json();
               allCategoriesData = data.data;
               mainCategoriesNav.innerHTML = '';
-              loader.textContent = 'Selecione uma categoria';
+              loader.textContent = 'Select a category';
 
               allCategoriesData.forEach((category, index) => {
                   const button = document.createElement('button');
@@ -485,8 +485,8 @@
                   if (index === 0) selectMainCategory(category.id);
               });
           } catch (error) {
-              console.error('Erro ao buscar categorias:', error);
-              loader.textContent = 'Falha ao carregar categorias.';
+              console.error('Error fetching categories:', error);
+              loader.textContent = 'Failed to load categories.';
           }
       });
 
