@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SMW Speedrun Mobile</title>
+    <title>SMW Speedrun Mobile (Debug Version)</title>
     <style>
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #1a1a1a; color: #f0f0f0; margin: 0; padding: 10px; }
         .container { max-width: 900px; margin: auto; }
@@ -150,6 +150,8 @@
       import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
       import { getDatabase, ref, push, onValue, update, set, get, query, orderByChild, equalTo, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+      console.info("[DEBUG] App initializing...");
+
       const firebaseConfig = {
         apiKey: "AIzaSyBoH4wSUIA3y57Qv_uPaELmzuNNffSU9x4",
         authDomain: "smw-speedrun-mobile.firebaseapp.com",
@@ -170,12 +172,18 @@
       const apiBaseUrl = `https://www.speedrun.com/api/v1`;
 
       window.toggleGame = function() {
+          console.groupCollapsed(`[DEBUG] Toggling Game`);
+          console.log(`Current game was: ${currentGameId}`);
           currentGameId = (currentGameId === 'smw') ? 'smwext' : 'smw';
+          console.log(`New game is: ${currentGameId}`);
+          console.log("Calling updateGameUI() and fetchAndDisplayCategories()");
+          console.groupEnd();
           updateGameUI();
           fetchAndDisplayCategories();
       }
 
       function updateGameUI() {
+          console.log("[DEBUG] Updating Game UI...");
           const isMainGame = currentGameId === 'smw';
           const toggleBtn = document.getElementById('extension-toggle-btn');
           
@@ -190,29 +198,38 @@
       }
 
       async function fetchAndDisplayCategories() {
+          console.groupCollapsed(`[DEBUG] Fetching categories for game: ${currentGameId}`);
           const loader = document.getElementById('leaderboard-loader');
           loader.textContent = 'Loading categories...';
           loader.style.display = 'block';
           allCategoriesData = [];
 
+          const apiUrl = `${apiBaseUrl}/games/${currentGameId}/categories?embed=variables`;
+          console.log(`Calling API: ${apiUrl}`);
+
           try {
-              const response = await fetch(`${apiBaseUrl}/games/${currentGameId}/categories?embed=variables`);
+              const response = await fetch(apiUrl);
               const data = await response.json();
               allCategoriesData = data.data;
               loader.textContent = 'Select a category';
+              console.log("API call successful. Received data:", data);
 
               if (currentGameId === 'smw') {
+                  console.log("Rendering as SMW tabs.");
                   displaySmwCategories();
               } else {
+                  console.log("Rendering as SMWEXT dropdown.");
                   displaySmwExtCategories();
               }
           } catch (error) {
               console.error('Error fetching categories:', error);
               loader.textContent = 'Failed to load categories.';
           }
+          console.groupEnd();
       }
 
       function displaySmwCategories() {
+          console.log("[DEBUG] Displaying SMW categories as tabs.");
           const mainCategoriesNav = document.getElementById('main-categories-nav');
           mainCategoriesNav.innerHTML = '';
           if (allCategoriesData.length > 0) {
@@ -221,12 +238,16 @@
                   button.textContent = category.name;
                   button.onclick = () => selectMainCategory(category.id);
                   mainCategoriesNav.appendChild(button);
-                  if (index === 0) selectMainCategory(category.id);
+                  if (index === 0) {
+                    console.log(`Automatically selecting first category: ${category.name}`);
+                    selectMainCategory(category.id);
+                  }
               });
           }
       }
 
       function displaySmwExtCategories() {
+          console.log("[DEBUG] Displaying SMWEXT categories as dropdown.");
           const select = document.getElementById('smwext-category-select');
           select.innerHTML = '';
           if (allCategoriesData.length > 0) {
@@ -246,6 +267,7 @@
                       select.appendChild(option);
                   }
               });
+              console.log("Automatically loading leaderboard for first dropdown option.");
               loadLeaderboardFromDropdown(select);
           }
       }
@@ -254,6 +276,7 @@
           const selectedOption = selectElement.options[selectElement.selectedIndex];
           const { categoryId, variableId, valueId } = selectedOption.dataset;
           const title = selectedOption.textContent;
+          console.log(`[DEBUG] Dropdown selection changed. Loading leaderboard for: ${title}`);
           loadLeaderboard(categoryId, variableId || null, valueId || null, title);
       }
 
@@ -284,6 +307,8 @@
       }
 
       function loadLeaderboard(categoryId, variableId, valueId, title) {
+          console.groupCollapsed(`[DEBUG] Loading Leaderboard`);
+          console.log({ categoryId, variableId, valueId, title });
           currentCategorySelection = { categoryId, variableId, valueId, title };
           const leaderboardList = document.getElementById('leaderboard-list');
           const leaderboardTitle = document.getElementById('leaderboard-title');
@@ -295,12 +320,14 @@
 
           let dbPath = `games/${currentGameId}/leaderboards/${categoryId}`;
           if (variableId && valueId) dbPath += `/${variableId}/${valueId}`;
+          console.log(`Reading from Firebase path: ${dbPath}`);
           
           onValue(ref(database, dbPath), (snapshot) => {
               loader.style.display = 'none';
               leaderboardList.innerHTML = '';
               const data = snapshot.val();
               if (data) {
+                  console.log("Leaderboard data received:", data);
                   const runs = Object.values(data);
                   runs.sort((a, b) => parseTimeToMilliseconds(a.time) - parseTimeToMilliseconds(b.time));
                   
@@ -320,14 +347,17 @@
                       leaderboardList.appendChild(li);
                   });
               } else {
+                  console.warn("No leaderboard data found at this path.");
                   leaderboardList.innerHTML = '<li style="justify-content: center;">No runs submitted for this category yet.</li>';
               }
           });
+          console.groupEnd();
       }
       
       window.closeModal = (modalId) => { document.getElementById(modalId).style.display = 'none'; }
       
       window.openSubmitModal = function() {
+          console.log("[DEBUG] Opening Submit Modal.");
           if (!allCategoriesData.length) {
               alert("Categories are still loading, please wait.");
               return;
@@ -338,6 +368,7 @@
 
       window.submitRun = async function(event) {
           event.preventDefault();
+          console.groupCollapsed("[DEBUG] Submitting Run");
           const mainCatSelect = document.getElementById('submit-main-category');
           const subCatSelect = document.getElementById('submit-sub-category');
           
@@ -355,10 +386,15 @@
               category: { id: categoryData.id, name: categoryData.name },
               subcategory: subcategoryValue ? { variableId: subcategoryVariable.id, valueId: subCatSelect.value, name: subcategoryValue.label } : null
           };
+
+          const dbPath = `games/${currentGameId}/submissions`;
+          console.log("Run data to be saved:", runData);
+          console.log(`Writing to Firebase path: ${dbPath}`);
           
           try {
-              const submissionsRef = ref(database, `games/${currentGameId}/submissions`);
+              const submissionsRef = ref(database, dbPath);
               await push(submissionsRef, runData);
+              console.log("Submission successful.");
               alert('Run submitted for verification successfully!');
               closeModal('submit-run-modal');
               document.getElementById('submit-run-form').reset();
@@ -366,20 +402,27 @@
               console.error("Error submitting run:", error);
               alert('Failed to submit run.');
           }
+          console.groupEnd();
       }
 
       window.loadSubmissions = function(filterStatus) {
+          console.groupCollapsed(`[DEBUG] Loading Submissions with status: ${filterStatus}`);
           document.querySelectorAll('.mod-filters button').forEach(btn => btn.classList.remove('active'));
           document.getElementById(`filter-${filterStatus}`).classList.add('active');
 
           const container = document.getElementById('submission-list-container');
           container.innerHTML = '<div class="loader">Loading submissions...</div>';
           
-          const submissionsQuery = query(ref(database, `games/${currentGameId}/submissions`), orderByChild('status'), equalTo(filterStatus));
+          const dbPath = `games/${currentGameId}/submissions`;
+          console.log(`Querying path: ${dbPath} where status is '${filterStatus}'`);
+          const submissionsQuery = query(ref(database, dbPath), orderByChild('status'), equalTo(filterStatus));
+          
           onValue(submissionsQuery, (snapshot) => {
+              console.log("Received submission data from query:", snapshot.val());
               container.innerHTML = '';
               const submissions = snapshot.val();
               if (!submissions || snapshot.size === 0) {
+                  console.warn(`No submissions found with status: ${filterStatus}`);
                   container.innerHTML = `<p style="text-align:center">No '${filterStatus}' submissions found.</p>`;
                   return;
               }
@@ -408,42 +451,54 @@
                   container.appendChild(item);
               });
           });
+          console.groupEnd();
       }
 
       window.updateRunStatus = async (id, newStatus) => {
+          console.groupCollapsed(`[DEBUG] Updating status for submission ${id} to ${newStatus}`);
           const submissionRef = ref(database, `games/${currentGameId}/submissions/${id}`);
           try {
               const snapshot = await get(submissionRef);
               const data = snapshot.val();
+              console.log("Current submission data:", data);
 
               if (data && data.status === 'verified' && newStatus === 'rejected' && data.leaderboardKey) {
                   let leaderboardPath = `games/${currentGameId}/leaderboards/${data.category.id}`;
                   if (data.subcategory) leaderboardPath += `/${data.subcategory.variableId}/${data.subcategory.valueId}`;
                   leaderboardPath += `/${data.leaderboardKey}`;
                   
+                  console.log(`Run was verified. Removing from public leaderboard at: ${leaderboardPath}`);
                   await remove(ref(database, leaderboardPath));
                   await update(submissionRef, { leaderboardKey: null }); 
               }
 
+              console.log(`Setting status to '${newStatus}' at: ${submissionRef.toString()}`);
               await update(submissionRef, { status: newStatus });
               alert(`Run status changed to ${newStatus}.`);
-
           } catch (error) {
               console.error("Error updating run status:", error);
               alert("Failed to update run status.");
           }
+          console.groupEnd();
       }
 
       window.verifyRun = async (id) => {
+          console.groupCollapsed(`[DEBUG] Verifying submission: ${id}`);
           const submissionRef = ref(database, `games/${currentGameId}/submissions/${id}`);
           const snapshot = await get(submissionRef);
           const data = snapshot.val();
-          if (!data) return;
+          console.log("Submission data:", data);
+          if (!data) {
+              console.error("Could not find submission to verify.");
+              console.groupEnd();
+              return;
+          }
           
           let leaderboardPath = `games/${currentGameId}/leaderboards/${data.category.id}`;
-          if (data.subcategory && data.subcategory.variableId && data.subcategory.valueId) {
+          if(data.subcategory && data.subcategory.variableId && data.subcategory.valueId) {
               leaderboardPath += `/${data.subcategory.variableId}/${data.subcategory.valueId}`;
           }
+          console.log(`Adding run to public leaderboard at: ${leaderboardPath}`);
           
           const newRunOnLeaderboardRef = await push(ref(database, leaderboardPath), {
               player: data.player,
@@ -452,22 +507,26 @@
               videoUrl: data.videoUrl || ''
           });
           
+          console.log(`New leaderboard key: ${newRunOnLeaderboardRef.key}. Linking it back to submission.`);
           await update(submissionRef, { 
               status: 'verified',
               leaderboardKey: newRunOnLeaderboardRef.key
           });
           alert('Run verified and added to the leaderboard!');
+          console.groupEnd();
       }
 
       window.deleteRun = async (id) => {
           if (!confirm("Are you sure you want to permanently delete this run? This action cannot be undone.")) {
               return;
           }
+          console.groupCollapsed(`[DEBUG] Deleting submission: ${id}`);
 
           const submissionRef = ref(database, `games/${currentGameId}/submissions/${id}`);
           try {
               const snapshot = await get(submissionRef);
               const data = snapshot.val();
+              console.log("Submission data to be deleted:", data);
 
               if (data && data.status === 'verified' && data.leaderboardKey) {
                   let leaderboardPath = `games/${currentGameId}/leaderboards/${data.category.id}`;
@@ -476,18 +535,22 @@
                   }
                   leaderboardPath += `/${data.leaderboardKey}`;
                   
+                  console.log(`Also deleting linked run from public leaderboard at: ${leaderboardPath}`);
                   await remove(ref(database, leaderboardPath));
               }
 
+              console.log(`Deleting submission record from: ${submissionRef.toString()}`);
               await remove(submissionRef);
               alert('Run permanently deleted.');
           } catch (error) {
               console.error("Error deleting run:", error);
               alert("Failed to delete run.");
           }
+          console.groupEnd();
       }
       
       window.openEditModal = async (id) => {
+          console.log(`[DEBUG] Opening Edit Modal for submission: ${id}`);
           const submissionRef = ref(database, `games/${currentGameId}/submissions/${id}`);
           const snapshot = await get(submissionRef);
           const data = snapshot.val();
@@ -509,6 +572,8 @@
       window.saveEditedRun = async (event) => {
           event.preventDefault();
           const id = document.getElementById('edit-run-id').value;
+          console.groupCollapsed(`[DEBUG] Saving edited run: ${id}`);
+          
           const mainCatSelect = document.getElementById('edit-main-category');
           const subCatSelect = document.getElementById('edit-sub-category');
           
@@ -529,10 +594,12 @@
           const snapshot = await get(submissionRef);
           const existingData = snapshot.val();
           Object.assign(existingData, updatedData);
+          console.log("Updated data object being saved:", existingData);
 
           await set(submissionRef, existingData);
           alert('Run updated!');
           closeModal('edit-run-modal');
+          console.groupEnd();
       }
 
       function populateCategoryDropdowns(prefix, selection) {
@@ -586,22 +653,28 @@
       }
 
       onAuthStateChanged(auth, (user) => {
+          console.groupCollapsed('[DEBUG] Auth State Changed');
           if (user) {
+              console.log(`User is signed in: ${user.email}`);
               document.getElementById('login-container').style.display = 'none';
               document.getElementById('mod-panel').style.display = 'block';
               loadSubmissions('pending');
           } else {
+              console.log("User is signed out.");
               document.getElementById('login-container').style.display = 'block';
               document.getElementById('mod-panel').style.display = 'none';
           }
+          console.groupEnd();
       });
       
       document.addEventListener('DOMContentLoaded', () => {
+          console.info("[DEBUG] DOM Content Loaded. Initializing first game view.");
           updateGameUI();
           fetchAndDisplayCategories();
       });
 
       function selectMainCategory(categoryId) {
+          console.log(`[DEBUG] Main category selected: ${categoryId}`);
           document.querySelectorAll('#main-categories-nav button').forEach(btn => {
               const category = allCategoriesData.find(c => c.id === categoryId);
               btn.classList.toggle('active', btn.textContent === category.name);
@@ -625,6 +698,7 @@
       }
 
       function selectSubCategory(categoryId, variableId, valueId, clickedButton) {
+          console.log(`[DEBUG] Subcategory selected: ${valueId}`);
           document.querySelectorAll('#sub-categories-nav button').forEach(btn => btn.classList.remove('active'));
           clickedButton.classList.add('active');
           const category = allCategoriesData.find(c => c.id === categoryId);
