@@ -298,13 +298,18 @@
               Object.entries(submissions).forEach(([id, data]) => {
                   const item = document.createElement('div');
                   item.className = `submission-item status-${data.status}`;
+                  let rejectButton = '';
+                  if (data.status === 'pending' || data.status === 'verified') {
+                      rejectButton = `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')">Reject</button>`;
+                  }
+
                   item.innerHTML = `
                       <p><strong>Player:</strong> ${data.player} | <strong>Time:</strong> ${data.time} | <strong>Date:</strong> ${data.date}</p>
                       <p><strong>Category:</strong> ${data.title}</p>
                       <p><strong>Video:</strong> <a href="${data.youtubeUrl}" target="_blank">Watch</a></p>
                       <div class="submission-actions">
                           ${data.status === 'pending' ? `<button class="btn-verify" onclick="verifyRun('${id}')">Approve</button>` : ''}
-                          ${data.status === 'pending' || data.status === 'verified' ? `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')">Reject</button>` : ''}
+                          ${rejectButton}
                           <button class="btn-edit" onclick="openEditModal('${id}')">Edit</button>
                           <button class="btn-delete" onclick="deleteRun('${id}')">Delete</button>
                       </div>
@@ -314,9 +319,29 @@
           });
       }
 
-      window.updateRunStatus = (id, newStatus) => {
-          update(ref(database, `submissions/${id}`), { status: newStatus });
-          alert(`Run status changed to ${newStatus}.`);
+      window.updateRunStatus = async (id, newStatus) => {
+          const submissionRef = ref(database, `submissions/${id}`);
+          try {
+              const snapshot = await get(submissionRef);
+              const data = snapshot.val();
+
+              if (data && data.status === 'verified' && newStatus === 'rejected' && data.leaderboardKey) {
+                  let leaderboardPath = `leaderboards/${data.categoryId}`;
+                  if (data.variableId && data.valueId) leaderboardPath += `/${data.variableId}/${data.valueId}`;
+                  leaderboardPath += `/${data.leaderboardKey}`;
+                  
+                  await remove(ref(database, leaderboardPath));
+                  // Clean up the leaderboardKey from the submission
+                  await update(submissionRef, { leaderboardKey: null }); 
+              }
+
+              await update(submissionRef, { status: newStatus });
+              alert(`Run status changed to ${newStatus}.`);
+
+          } catch (error) {
+              console.error("Error updating run status:", error);
+              alert("Failed to update run status.");
+          }
       }
 
       window.verifyRun = async (id) => {
