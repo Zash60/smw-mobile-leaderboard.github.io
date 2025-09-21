@@ -231,9 +231,20 @@
           select.innerHTML = '';
           if (allCategoriesData.length > 0) {
               allCategoriesData.forEach(category => {
-                  const option = new Option(category.name, category.id);
-                  option.dataset.categoryId = category.id;
-                  select.appendChild(option);
+                  const subVar = category.variables.data.find(v => v['is-subcategory']);
+                  if (subVar) {
+                      Object.entries(subVar.values.values).forEach(([valueId, valueData]) => {
+                          const option = new Option(`${category.name} - ${valueData.label}`);
+                          option.dataset.categoryId = category.id;
+                          option.dataset.variableId = subVar.id;
+                          option.dataset.valueId = valueId;
+                          select.appendChild(option);
+                      });
+                  } else {
+                      const option = new Option(category.name);
+                      option.dataset.categoryId = category.id;
+                      select.appendChild(option);
+                  }
               });
               loadLeaderboardFromDropdown(select);
           }
