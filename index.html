@@ -168,13 +168,84 @@
       const gameId = 'smw';
       const apiBaseUrl = `https://www.speedrun.com/api/v1`;
 
-      function parseTimeToMilliseconds(timeStr) { /* Unchanged */ }
+      function parseTimeToMilliseconds(timeStr) {
+          if (!timeStr || typeof timeStr !== 'string') return 0;
+          let totalMs = 0;
+          const hourMatch = timeStr.match(/(\d+)\s*h/);
+          const minMatch = timeStr.match(/(\d+)\s*m(?!s)/);
+          const secMatch = timeStr.match(/(\d+(\.\d+)?)\s*s/);
+          const msMatch = timeStr.match(/(\d+)\s*ms/);
+          if (hourMatch || minMatch || secMatch || msMatch) {
+              if (hourMatch) totalMs += parseInt(hourMatch[1]) * 3600000;
+              if (minMatch) totalMs += parseInt(minMatch[1]) * 60000;
+              if (secMatch) totalMs += parseFloat(secMatch[1]) * 1000;
+              if (msMatch) totalMs += parseInt(msMatch[1]);
+              return totalMs;
+          }
+          const parts = timeStr.split(':');
+          if (parts.length === 3) {
+              totalMs += parseInt(parts[0]) * 3600000;
+              totalMs += parseInt(parts[1]) * 60000;
+              totalMs += parseFloat(parts[2]) * 1000;
+          } else if (parts.length === 2) {
+              totalMs += parseInt(parts[0]) * 60000;
+              totalMs += parseFloat(parts[1]) * 1000;
+          }
+          return totalMs;
+      }
 
-      function loadLeaderboard(categoryId, variableId, valueId, title) { /* Unchanged */ }
+      function loadLeaderboard(categoryId, variableId, valueId, title) {
+          currentCategorySelection = { categoryId, variableId, valueId, title };
+          const leaderboardList = document.getElementById('leaderboard-list');
+          const leaderboardTitle = document.getElementById('leaderboard-title');
+          const loader = document.getElementById('leaderboard-loader');
+          leaderboardTitle.textContent = title;
+          leaderboardList.innerHTML = '';
+          loader.style.display = 'block';
+          loader.textContent = 'Loading leaderboard...';
+
+          let dbPath = `games/${gameId}/leaderboards/${categoryId}`;
+          if (variableId && valueId) dbPath += `/${variableId}/${valueId}`;
+          
+          onValue(ref(database, dbPath), (snapshot) => {
+              loader.style.display = 'none';
+              leaderboardList.innerHTML = '';
+              const data = snapshot.val();
+              if (data) {
+                  const runs = Object.values(data);
+                  runs.sort((a, b) => parseTimeToMilliseconds(a.time) - parseTimeToMilliseconds(b.time));
+                  
+                  runs.forEach((run, index) => {
+                      const li = document.createElement('li');
+                      const youtubeIcon = `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M21.582,6.186 C21.328,5.247 20.753,4.672 19.814,4.418 C18.109,4 12,4 12,4 C12,4 5.891,4 4.186,4.418 C3.247,4.672 2.672,5.247 2.418,6.186 C2,7.891 2,12 2,12 C2,12 2,16.109 2.418,17.814 C2.672,18.753 3.247,19.328 4.186,19.582 C5.891,20 12,20 12,20 C12,20 18.109,20 19.814,19.582 C20.753,19.328 21.328,18.753 21.582,17.814 C22,16.109 22,12 22,12 C22,12 22,7.891 21.582,6.186 Z" fill="#FF0000"/><path d="M9.75,15.5 L15.75,12 L9.75,8.5 L9.75,15.5 Z" fill="white"/></svg>`;
+                      const youtubeLink = run.videoUrl ? `<a href="${run.videoUrl}" target="_blank" class="yt-link" title="Watch video">${youtubeIcon}</a>` : '';
+                      
+                      li.innerHTML = `
+                          <strong class="rank">#${index + 1}</strong>
+                          <div class="player-info">
+                              <span>${run.player} ${youtubeLink}</span>
+                              <div class="run-details">${run.date}</div>
+                          </div>
+                          <strong class="run-time">${run.time}</strong>
+                      `;
+                      leaderboardList.appendChild(li);
+                  });
+              } else {
+                  leaderboardList.innerHTML = '<li style="justify-content: center;">No runs submitted for this category yet.</li>';
+              }
+          });
+      }
       
-      window.closeModal = (modalId) => { /* Unchanged */ }
+      window.closeModal = (modalId) => { document.getElementById(modalId).style.display = 'none'; }
       
-      window.openSubmitModal = function() { /* Unchanged */ }
+      window.openSubmitModal = function() {
+          if (!allCategoriesData.length) {
+              alert("Categories are still loading, please wait.");
+              return;
+          }
+          populateCategoryDropdowns('submit', currentCategorySelection);
+          document.getElementById('submit-run-modal').style.display = 'block';
+      }
 
       window.submitRun = async function(event) {
           event.preventDefault();
