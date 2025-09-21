@@ -251,9 +251,10 @@
           event.preventDefault();
           const mainCatSelect = document.getElementById('submit-main-category');
           const subCatSelect = document.getElementById('submit-sub-category');
-          const selectedCategory = allCategoriesData.find(c => c.id === mainCatSelect.value);
-          const subCatVariable = selectedCategory.variables.data.find(v => v['is-subcategory']);
-          const selectedSubCat = subCatVariable?.values.values[subCatSelect.value];
+          
+          const categoryData = allCategoriesData.find(c => c.id === mainCatSelect.value);
+          const subcategoryVariable = categoryData.variables.data.find(v => v['is-subcategory']);
+          const subcategoryValue = subcategoryVariable?.values.values[subCatSelect.value];
           
           const runData = {
               player: document.getElementById('player-name').value,
@@ -263,13 +264,13 @@
               status: 'pending',
               submittedAt: new Date().toISOString(),
               category: {
-                id: selectedCategory.id,
-                name: selectedCategory.name
+                id: categoryData.id,
+                name: categoryData.name
               },
-              subcategory: selectedSubCat ? {
-                variableId: subCatVariable.id,
+              subcategory: subcategoryValue ? {
+                variableId: subcategoryVariable.id,
                 valueId: subCatSelect.value,
-                name: selectedSubCat.label
+                name: subcategoryValue.label
               } : null
           };
           
@@ -309,7 +310,9 @@
                       rejectButton = `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')">Reject</button>`;
                   }
                   
-                  const categoryTitle = data.subcategory ? `${data.category.name} - ${data.subcategory.name}` : data.category.name;
+                  const categoryTitle = data.subcategory 
+                      ? `${data.category.name} - ${data.subcategory.name}` 
+                      : data.category.name;
 
                   item.innerHTML = `
                       <p><strong>Player:</strong> ${data.player} | <strong>Time:</strong> ${data.time} | <strong>Date:</strong> ${data.date}</p>
@@ -424,9 +427,10 @@
           const id = document.getElementById('edit-run-id').value;
           const mainCatSelect = document.getElementById('edit-main-category');
           const subCatSelect = document.getElementById('edit-sub-category');
-          const selectedCategory = allCategoriesData.find(c => c.id === mainCatSelect.value);
-          const subCatVariable = selectedCategory.variables.data.find(v => v['is-subcategory']);
-          const selectedSubCat = subCatVariable?.values.values[subCatSelect.value];
+          
+          const categoryData = allCategoriesData.find(c => c.id === mainCatSelect.value);
+          const subcategoryVariable = categoryData.variables.data.find(v => v['is-subcategory']);
+          const subcategoryValue = subcategoryVariable?.values.values[subCatSelect.value];
 
           const updatedData = {
               player: document.getElementById('edit-player-name').value,
@@ -434,13 +438,13 @@
               date: document.getElementById('edit-run-date').value,
               videoUrl: document.getElementById('edit-video-url').value,
               category: {
-                id: selectedCategory.id,
-                name: selectedCategory.name
+                id: categoryData.id,
+                name: categoryData.name
               },
-              subcategory: selectedSubCat ? {
-                variableId: subCatVariable.id,
+              subcategory: subcategoryValue ? {
+                variableId: subcategoryVariable.id,
                 valueId: subCatSelect.value,
-                name: selectedSubCat.label
+                name: subcategoryValue.label
               } : null
           };
           
