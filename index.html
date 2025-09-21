@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -41,77 +41,78 @@
             <button onclick="showTab('mod')" id="mod-btn">Mod</button>
         </nav>
 
-        <!-- Aba Home -->
+        <!-- Home Tab -->
         <div id="home" class="tab-content active">
-            <h2>Categorias de Super Mario World</h2>
+            <h2>Super Mario World Categories</h2>
             <div id="categories-container">
-                <div class="loader">Carregando categorias...</div>
+                <div class="loader">Loading categories...</div>
                 <ul id="categories-list" class="category-list"></ul>
             </div>
             <hr>
             <h2 id="leaderboard-title">Leaderboard</h2>
             <div id="leaderboard-container">
-                 <div id="leaderboard-loader" class="loader" style="display: none;">Carregando leaderboard...</div>
+                 <div id="leaderboard-loader" class="loader" style="display: none;">Loading leaderboard...</div>
                 <ul id="leaderboard-list" class="leaderboard-list"></ul>
             </div>
         </div>
 
-        <!-- Aba Mod -->
+        <!-- Mod Tab -->
         <div id="mod" class="tab-content">
             <div id="login-container">
-                <h2>Login de Moderador</h2>
+                <h2>Moderator Login</h2>
                 <form id="login-form" onsubmit="login(event)">
                     <input type="email" id="email" placeholder="Email" required>
-                    <input type="password" id="password" placeholder="Senha" required>
-                    <button type="submit">Entrar</button>
+                    <input type="password" id="password" placeholder="Password" required>
+                    <button type="submit">Login</button>
                 </form>
             </div>
 
             <div id="mod-content">
-                <h2>Adicionar Nova Run</h2>
+                <h2>Add New Run</h2>
                 <form id="submit-run-form" onsubmit="submitRun(event)">
-                    <input type="text" id="player-name" placeholder="Nome do Jogador" required>
-                    <input type="text" id="run-time" placeholder="Tempo (ex: 1h 23m 45s 678ms)" required>
-                    <input type="text" id="platform" placeholder="Plataforma" required>
-                    <button type="submit">Enviar Run</button>
+                    <input type="text" id="player-name" placeholder="Player Name" required>
+                    <input type="text" id="run-time" placeholder="Time (e.g., 1h 23m 45s 678ms)" required>
+                    <input type="text" id="platform" placeholder="Platform" required>
+                    <button type="submit">Submit Run</button>
                 </form>
-                <button onclick="logout()">Sair</button>
+                <button onclick="logout()">Logout</button>
             </div>
         </div>
     </div>
 
     <script type="module">
-      // Importações do Firebase
+      // Firebase SDK imports
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
       import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
       import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-      // ATENÇÃO: Substitua pela configuração do seu projeto Firebase
+      // IMPORTANT: Replace with your own Firebase project configuration
       const firebaseConfig = {
-        apiKey: "SUA_API_KEY",
-        authDomain: "SEU_AUTH_DOMAIN",
-        projectId: "SEU_PROJECT_ID",
-        storageBucket: "SEU_STORAGE_BUCKET",
-        messagingSenderId: "SEU_MESSAGING_SENDER_ID",
-        appId: "SEU_APP_ID"
+        apiKey: "YOUR_API_KEY",
+        authDomain: "YOUR_AUTH_DOMAIN",
+        projectId: "YOUR_PROJECT_ID",
+        storageBucket: "YOUR_STORAGE_BUCKET",
+        messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
+        appId: "YOUR_APP_ID"
       };
 
-      // Inicializar Firebase
+      // Initialize Firebase
       const app = initializeApp(firebaseConfig);
       const auth = getAuth(app);
       const database = getDatabase(app);
       
       let currentCategoryRef = null;
 
-      // --- Lógica da API do Speedrun.com ---
-      const gameId = 'smw'; // ID do jogo Super Mario World no speedrun.com
+      // --- Speedrun.com API Logic ---
+      const gameId = 'smw'; // Super Mario World game ID on speedrun.com
       const apiBaseUrl = `https://www.speedrun.com/api/v1`;
 
       async function fetchCategories() {
           const categoriesContainer = document.getElementById('categories-list');
           const loader = document.querySelector('#categories-container .loader');
           try {
-              const response = await fetch(`${apiBaseUrl}/games/${gameId}/categories`);
+              // *** FIX IS HERE: Added ?embed=variables to the URL ***
+              const response = await fetch(`${apiBaseUrl}/games/${gameId}/categories?embed=variables`);
               const data = await response.json();
               loader.style.display = 'none';
 
@@ -119,8 +120,8 @@
                   const li = document.createElement('li');
                   li.innerHTML = `<strong>${category.name}</strong>`;
                   
-                  // Buscar subcategorias (variáveis)
-                  if (category.variables.data.length > 0) {
+                  // Check for subcategories (variables)
+                  if (category.variables && category.variables.data.length > 0) {
                       const subcategoryList = document.createElement('ul');
                       subcategoryList.className = 'subcategory-list';
                       
@@ -129,7 +130,7 @@
                               Object.entries(variable.values.values).forEach(([valueId, valueData]) => {
                                   const subLi = document.createElement('li');
                                   subLi.textContent = `- ${valueData.label}`;
-                                  // Adiciona evento de clique para carregar o leaderboard
+                                  // Add click event to load the leaderboard
                                   subLi.onclick = () => loadLeaderboard(category.id, variable.id, valueId, `${category.name} - ${valueData.label}`);
                                   subcategoryList.appendChild(subLi);
                               });
@@ -137,7 +138,7 @@
                       });
                        li.appendChild(subcategoryList);
                   } else {
-                      // Se não há subcategorias, carrega o leaderboard da categoria principal
+                      // If no subcategories, load the main category leaderboard
                       li.style.cursor = 'pointer';
                       li.onclick = () => loadLeaderboard(category.id, null, null, category.name);
                   }
@@ -145,12 +146,12 @@
                   categoriesContainer.appendChild(li);
               });
           } catch (error) {
-              console.error('Erro ao buscar categorias:', error);
-              loader.textContent = 'Falha ao carregar categorias.';
+              console.error('Error fetching categories:', error);
+              loader.textContent = 'Failed to load categories.';
           }
       }
       
-      // --- Lógica do Leaderboard e Firebase ---
+      // --- Leaderboard and Firebase Logic ---
       function loadLeaderboard(categoryId, variableId = null, valueId = null, title) {
           const leaderboardList = document.getElementById('leaderboard-list');
           const leaderboardTitle = document.getElementById('leaderboard-title');
@@ -168,7 +169,7 @@
 
           onValue(currentCategoryRef, (snapshot) => {
               loader.style.display = 'none';
-              leaderboardList.innerHTML = ''; // Limpa a lista antes de adicionar novos itens
+              leaderboardList.innerHTML = ''; // Clear list before adding new items
               const data = snapshot.val();
               if (data) {
                   Object.values(data).forEach(run => {
@@ -177,7 +178,7 @@
                       leaderboardList.appendChild(li);
                   });
               } else {
-                  leaderboardList.innerHTML = '<li>Nenhuma run registrada para esta categoria.</li>';
+                  leaderboardList.innerHTML = '<li>No runs submitted for this category yet.</li>';
               }
           });
       }
@@ -185,7 +186,7 @@
       window.submitRun = async function(event) {
           event.preventDefault();
           if (!currentCategoryRef) {
-              alert("Por favor, selecione uma categoria primeiro.");
+              alert("Please select a category first.");
               return;
           }
 
@@ -199,15 +200,15 @@
                   time: runTime,
                   platform: platform
               });
-              alert('Run enviada com sucesso!');
+              alert('Run submitted successfully!');
               document.getElementById('submit-run-form').reset();
           } catch (error) {
-              console.error("Erro ao enviar a run:", error);
-              alert('Falha ao enviar a run.');
+              console.error("Error submitting run:", error);
+              alert('Failed to submit run.');
           }
       }
 
-      // --- Lógica de Autenticação e Navegação ---
+      // --- Authentication and Navigation Logic ---
       window.showTab = function(tabName) {
           document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
           document.querySelectorAll('nav button').forEach(btn => btn.classList.remove('active'));
@@ -223,36 +224,36 @@
           
           signInWithEmailAndPassword(auth, email, password)
               .then((userCredential) => {
-                  // Login bem-sucedido
-                  console.log("Usuário logado:", userCredential.user);
+                  // Login successful
+                  console.log("User logged in:", userCredential.user);
               })
               .catch((error) => {
-                  alert("Erro no login: " + error.message);
+                  alert("Login Error: " + error.message);
               });
       }
       
       window.logout = function() {
-          signOut(auth).catch(error => console.error("Erro ao sair:", error));
+          signOut(auth).catch(error => console.error("Logout Error:", error));
       }
 
       onAuthStateChanged(auth, (user) => {
           const loginContainer = document.getElementById('login-container');
           const modContent = document.getElementById('mod-content');
           if (user) {
-              // Usuário está logado
+              // User is signed in
               loginContainer.style.display = 'none';
               modContent.style.display = 'block';
           } else {
-              // Usuário não está logado
+              // User is signed out
               loginContainer.style.display = 'block';
               modContent.style.display = 'none';
           }
       });
       
-      // Inicia o carregamento das categorias quando a página carrega
+      // Load categories when the page is ready
       document.addEventListener('DOMContentLoaded', fetchCategories);
       
-      // Disponibiliza funções no escopo global para o HTML
+      // Make functions available globally for the HTML onclick attributes
       window.loadLeaderboard = loadLeaderboard;
     </script>
 </body>
