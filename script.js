@@ -1,20 +1,24 @@
       import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-      import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-      import { getDatabase, ref, push, onValue, update, set, get, query, orderByChild, equalTo, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
+import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { getDatabase, ref, push, onValue, update, set, get, query, orderByChild, equalTo, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
-      const firebaseConfig = {
-        apiKey: "AIzaSyBoH4wSUIA3y57Qv_uPaELmzuNNffSU9x4",
-        authDomain: "smw-speedrun-mobile.firebaseapp.com",
-        databaseURL: "https://smw-speedrun-mobile-default-rtdb.firebaseio.com",
-        projectId: "smw-speedrun-mobile",
-        storageBucket: "smw-speedrun-mobile.firebasestorage.app",
-        messagingSenderId: "1051268583534",
-        appId: "1:1051268583534:web:c813c2b8b28cb5fea1567f"
-      };
+const firebaseConfig = {
+  apiKey: "AIzaSyCUlURbPgVucJZlUeFs7vj1_HRINgButaA",
+  authDomain: "smw-speedrun-mobile-lederbord.firebaseapp.com",
+  // A linha abaixo foi gerada automaticamente baseada no seu ID. 
+  // Se der erro, verifique no Console do Firebase > Realtime Database a URL correta.
+  databaseURL: "https://smw-speedrun-mobile-lederbord-default-rtdb.firebaseio.com",
+  projectId: "smw-speedrun-mobile-lederbord",
+  storageBucket: "smw-speedrun-mobile-lederbord.firebasestorage.app",
+  messagingSenderId: "938362959999",
+  appId: "1:938362959999:web:50ac271e89704ec3bce74a"
+};
 
-      const app = initializeApp(firebaseConfig);
-      const auth = getAuth(app);
-      const database = getDatabase(app);
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const database = getDatabase(app);
+
+// ... O resto do seu código continua igual daqui para baixo ...
       
       let allCategoriesData = [];
       let currentCategorySelection = null;
