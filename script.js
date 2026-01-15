@@ -7,7 +7,7 @@ const firebaseConfig = {
   authDomain: "smw-speedrun-mobile-lederbord.firebaseapp.com",
   // A linha abaixo foi gerada automaticamente baseada no seu ID. 
   // Se der erro, verifique no Console do Firebase > Realtime Database a URL correta.
-  databaseURL: "https://smw-speedrun-mobile-lederbord-default-rtdb.firebaseio.com",
+  databaseURL: "https://smw-speedrun-mobile-lederbord-default-rtdb.firebaseio.com/",
   projectId: "smw-speedrun-mobile-lederbord",
   storageBucket: "smw-speedrun-mobile-lederbord.firebasestorage.app",
   messagingSenderId: "938362959999",
