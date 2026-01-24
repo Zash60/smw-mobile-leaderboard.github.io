@@ -34,11 +34,12 @@ const database = getDatabase(app);
       function updateGameUI() {
           const isMainGame = currentGameId === 'smw';
           const toggleBtn = document.getElementById('extension-toggle-btn');
-          
+
           toggleBtn.textContent = isMainGame ? 'View Category Extensions' : 'View Main Categories';
+          toggleBtn.setAttribute('data-game', currentGameId);
           document.getElementById('smw-categories-container').style.display = isMainGame ? 'block' : 'none';
           document.getElementById('smwext-categories-container').style.display = isMainGame ? 'none' : 'block';
-          
+
           document.getElementById('leaderboard-list').innerHTML = '';
           document.getElementById('leaderboard-title').textContent = 'Leaderboard';
           document.getElementById('leaderboard-loader').textContent = 'Select a category';
@@ -245,20 +246,25 @@ const database = getDatabase(app);
                   item.className = `submission-item status-${data.status}`;
                   let rejectButton = '';
                   if (data.status === 'pending' || data.status === 'verified') {
-                      rejectButton = `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')">Reject</button>`;
+                      rejectButton = `<button class="btn-reject" onclick="updateRunStatus('${id}', 'rejected')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Reject</button>`;
                   }
-                  
+
                   const categoryTitle = data.subcategory ? `${data.category.name} - ${data.subcategory.name}` : data.category.name;
 
                   item.innerHTML = `
-                      <p><strong>Player:</strong> ${data.player} | <strong>Time:</strong> ${data.time} | <strong>Date:</strong> ${data.date}</p>
-                      <p><strong>Category:</strong> ${categoryTitle}</p>
-                      <p><strong>Video:</strong> <a href="${data.videoUrl}" target="_blank">Watch</a></p>
+                      <div class="submission-header">
+                          <div class="submission-info">
+                              <p><strong>Player:</strong> ${data.player}</p>
+                              <p><strong>Time:</strong> ${data.time} | <strong>Date:</strong> ${data.date}</p>
+                          </div>
+                      </div>
+                      <p class="submission-category"><strong>Category:</strong> ${categoryTitle}</p>
+                      <p class="submission-video"><strong>Video:</strong> <a href="${data.videoUrl}" target="_blank">Watch Video</a></p>
                       <div class="submission-actions">
-                          ${data.status === 'pending' ? `<button class="btn-verify" onclick="verifyRun('${id}')">Approve</button>` : ''}
+                          ${data.status === 'pending' ? `<button class="btn-verify" onclick="verifyRun('${id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M20 6L9 17L4 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Approve</button>` : ''}
                           ${rejectButton}
-                          <button class="btn-edit" onclick="openEditModal('${id}')">Edit</button>
-                          <button class="btn-delete" onclick="deleteRun('${id}')">Delete</button>
+                          <button class="btn-edit" onclick="openEditModal('${id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Edit</button>
+                          <button class="btn-delete" onclick="deleteRun('${id}')"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M10 11v6M14 11v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Delete</button>
                       </div>
                   `;
                   container.appendChild(item);
