@@ -26,20 +26,12 @@
             position: relative;
             overflow: hidden;
         }
-        #extension-toggle-btn::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 50%;
-            height: 100%;
+        #extension-toggle-btn.active {
             background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
-            border-radius: 25px;
-            transition: transform 0.3s ease;
-            transform: translateX(0);
+            color: white;
         }
-        #extension-toggle-btn[data-game="smwext"]::before {
-            transform: translateX(100%);
+        #extension-toggle-btn.active::after {
+            color: white;
         }
         #extension-toggle-btn:hover {
             transform: translateY(-2px);
@@ -406,7 +398,21 @@
             header h1 { font-size: 2em; }
             .main-nav { flex-direction: column; gap: 10px; }
             .main-nav > button { margin: 0; }
-            #extension-toggle-btn { padding: 8px 16px; font-size: 0.9em; }
+            #extension-toggle-btn {
+                padding: 8px 16px;
+                font-size: 0;
+                position: relative;
+            }
+            #extension-toggle-btn::after {
+                content: attr(data-label);
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 0.8em;
+                color: #ddd;
+                pointer-events: none;
+            }
             .leaderboard-list li { flex-direction: column; text-align: center; gap: 10px; }
             .leaderboard-list .rank { align-self: center; }
             .submit-run-btn { width: 100%; max-width: 300px; }

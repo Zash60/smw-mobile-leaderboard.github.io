@@ -1,28 +1,27 @@
-      import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
 import { getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { getDatabase, ref, push, onValue, update, set, get, query, orderByChild, equalTo, remove } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-database.js";
 
+// Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyCUlURbPgVucJZlUeFs7vj1_HRINgButaA",
-  authDomain: "smw-speedrun-mobile-lederbord.firebaseapp.com",
-  // A linha abaixo foi gerada automaticamente baseada no seu ID. 
-  // Se der erro, verifique no Console do Firebase > Realtime Database a URL correta.
-  databaseURL: "https://smw-speedrun-mobile-lederbord-default-rtdb.firebaseio.com/",
-  projectId: "smw-speedrun-mobile-lederbord",
-  storageBucket: "smw-speedrun-mobile-lederbord.firebasestorage.app",
-  messagingSenderId: "938362959999",
-  appId: "1:938362959999:web:50ac271e89704ec3bce74a"
+    apiKey: "AIzaSyCUlURbPgVucJZlUeFs7vj1_HRINgButaA",
+    authDomain: "smw-speedrun-mobile-lederbord.firebaseapp.com",
+    databaseURL: "https://smw-speedrun-mobile-lederbord-default-rtdb.firebaseio.com/",
+    projectId: "smw-speedrun-mobile-lederbord",
+    storageBucket: "smw-speedrun-mobile-lederbord.firebasestorage.app",
+    messagingSenderId: "938362959999",
+    appId: "1:938362959999:web:50ac271e89704ec3bce74a"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const database = getDatabase(app);
 
-// ... O resto do seu código continua igual daqui para baixo ...
-      
-      let allCategoriesData = [];
-      let currentCategorySelection = null;
-      let currentGameId = 'smw';
+// Global variables
+let allCategoriesData = [];
+let currentCategorySelection = null;
+let currentGameId = 'smw';
       const apiBaseUrl = `https://www.speedrun.com/api/v1`;
 
       window.toggleGame = function() {
@@ -37,6 +36,8 @@ const database = getDatabase(app);
 
           toggleBtn.textContent = isMainGame ? 'View Category Extensions' : 'View Main Categories';
           toggleBtn.setAttribute('data-game', currentGameId);
+          toggleBtn.setAttribute('data-label', isMainGame ? 'Main' : 'Extensions');
+          toggleBtn.classList.toggle('active', currentGameId === 'smwext');
           document.getElementById('smw-categories-container').style.display = isMainGame ? 'block' : 'none';
           document.getElementById('smwext-categories-container').style.display = isMainGame ? 'none' : 'block';
 
