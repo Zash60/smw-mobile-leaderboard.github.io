@@ -494,3 +494,22 @@ let currentGameId = 'smw';
           const title = `${category.name} - ${clickedButton.textContent}`;
           loadLeaderboard(categoryId, variableId, valueId, title);
       }
+
+     window.filterLeaderboard = function() {
+    const input = document.getElementById('leaderboard-search');
+    const filter = input.value.toUpperCase();
+    const ul = document.getElementById("leaderboard-list");
+    const li = ul.getElementsByTagName("li");
+
+    for (let i = 0; i < li.length; i++) {
+        const playerInfo = li[i].getElementsByClassName("player-info")[0];
+        if (playerInfo) {
+            const txtValue = playerInfo.textContent || playerInfo.innerText;
+            if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                li[i].style.display = "";
+            } else {
+                li[i].style.display = "none";
+            }
+        }
+    }
+}
