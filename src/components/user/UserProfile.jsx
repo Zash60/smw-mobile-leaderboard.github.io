@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { User, Settings, LogOut, Trophy, Clock, Calendar } from 'lucide-react'
-import { useUserProfile } from '../context/UserProfileContext'
-import { formatTime, parseTimeToMilliseconds } from '../utils/timeParser'
+import { useUserProfile } from '../../context/UserProfileContext'
+import { formatTime, parseTimeToMilliseconds } from '../../utils/timeParser'
 
 export function UserProfile() {
   const { currentUser, userProfile, setUser, updateProfile } = useUserProfile()
