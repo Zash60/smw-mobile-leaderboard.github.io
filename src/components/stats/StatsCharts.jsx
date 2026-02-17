@@ -61,6 +61,14 @@ export function StatsCharts({ runs, categories }) {
     const min = Math.min(...times)
     const max = Math.max(...times)
     const range = max - min
+    
+    // Se todos os tempos são iguais ou há apenas uma run
+    if (range === 0 || times.length === 1) {
+      return [
+        { name: formatTime(min * 1000), value: times.length }
+      ]
+    }
+    
     const step = range / 5
     
     const distribution = [
@@ -73,7 +81,9 @@ export function StatsCharts({ runs, categories }) {
     
     times.forEach(time => {
       const index = Math.min(Math.floor((time - min) / step), 4)
-      distribution[index].value++
+      if (distribution[index]) {
+        distribution[index].value++
+      }
     })
     
     return distribution
@@ -141,7 +151,7 @@ export function StatsCharts({ runs, categories }) {
                 cx="50%"
                 cy="50%"
                 labelLine={false}
-                label={({ name, percent }) => `${(percent * 100).toFixed(0)}%`}
+                label={({ name, percent }) => percent > 0 ? `${(percent * 100).toFixed(0)}%` : ''}
                 outerRadius={80}
                 fill="#8884d8"
                 dataKey="value"
