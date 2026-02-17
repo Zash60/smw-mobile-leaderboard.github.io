@@ -17,7 +17,7 @@ import { formatTime, parseTimeToMilliseconds } from '../../utils/timeParser'
 
 const COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899']
 
-export function StatsCharts({ runs, categories }) {
+export function StatsCharts({ runs, categories, categoryName }) {
   // Gráfico de evolução de tempos
   const timeEvolutionData = useMemo(() => {
     if (!runs.length) return []

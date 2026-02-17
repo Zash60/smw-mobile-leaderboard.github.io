@@ -68,7 +68,7 @@ function App() {
         )}
 
         {activeTab === 'stats' && (
-          <StatsTab runs={runs} categories={categories} />
+          <StatsTab runs={runs} categories={categories} selectedCategory={selectedCategory} />
         )}
 
         {activeTab === 'profile' && (
@@ -147,11 +147,24 @@ function HomeTab({
   )
 }
 
-function StatsTab({ runs, categories }) {
+function StatsTab({ runs, categories, selectedCategory }) {
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold">Estatísticas</h2>
-      <StatsCharts runs={runs} categories={categories} />
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Estatísticas</h2>
+        {selectedCategory && (
+          <span className="text-sm px-3 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 rounded-full">
+            {selectedCategory.title}
+          </span>
+        )}
+      </div>
+      {!selectedCategory ? (
+        <div className="text-center py-12 text-gray-500">
+          Selecione uma categoria no Leaderboard para ver estatísticas
+        </div>
+      ) : (
+        <StatsCharts runs={runs} categories={categories} categoryName={selectedCategory.title} />
+      )}
     </div>
   )
 }

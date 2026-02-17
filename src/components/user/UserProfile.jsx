@@ -18,8 +18,23 @@ export function UserProfile() {
     return (
       <div className="card p-6 text-center">
         <User className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-        <h3 className="text-lg font-semibold mb-2">Faça login para ver seu perfil</h3>
-        <p className="text-gray-500 mb-4">Acesse sua conta para ver estatísticas e histórico</p>
+        <h3 className="text-lg font-semibold mb-2">Perfil de Visitante</h3>
+        <p className="text-gray-500 mb-4">Você está navegando anonimamente. Faça login para salvar seu histórico e estatísticas.</p>
+        <div className="flex gap-3 justify-center">
+          <button 
+            onClick={() => setUser({ id: 'guest_' + Date.now(), name: 'Visitante' })}
+            className="btn btn-secondary"
+          >
+            Continuar como Visitante
+          </button>
+          <button 
+            onClick={() => setUser({ id: 'user_' + Date.now(), name: 'zash' })}
+            className="btn btn-primary"
+          >
+            Entrar
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mt-4">O login é opcional. Você pode usar todas as funcionalidades como visitante.</p>
       </div>
     )
   }
